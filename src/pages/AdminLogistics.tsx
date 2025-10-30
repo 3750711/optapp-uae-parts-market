@@ -7,6 +7,7 @@ import { FileText, Download, ChevronUp, ChevronDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useResizableColumns } from '@/hooks/useResizableColumns';
 import { ResizableTableHead } from '@/components/ui/resizable-table-head';
+import { useAdminLogisticsState } from '@/hooks/useAdminLogisticsState';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Eye, Container, Save, RefreshCw, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -125,98 +126,29 @@ const AdminLogistics = () => {
   const [showExportHistory, setShowExportHistory] = useState(false);
   const [exportHistory, setExportHistory] = useState<Database['public']['Tables']['logistics_exports']['Row'][]>([]);
 
-  const [sortConfig, setSortConfig] = useState<SortConfig>({
-    field: null,
-    direction: null
-  });
-
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [managingPlacesOrderId, setManagingPlacesOrderId] = useState<string | null>(null);
   const [showContainerManagement, setShowContainerManagement] = useState(false);
 
-  // Filters state - separate pending and applied
-  const [pendingFilters, setPendingFilters] = useState<LogisticsFiltersType>({
-    sellerIds: [],
-    buyerIds: [],
-    containerNumbers: [],
-    shipmentStatuses: [],
-    containerStatuses: [],
-    orderStatuses: [],
-    searchTerm: ''
-  });
+  // Use hook for filters and sorting with localStorage persistence
+  const {
+    pendingFilters,
+    setPendingFilters,
+    appliedFilters,
+    sortConfig,
+    hasUnappliedChanges,
+    hasUnappliedSearch,
+    handleApplyFilters: handleApplyFiltersFromHook,
+    handleApplySearch,
+    handleClearSearch,
+    handleClearFilters,
+    handleRemoveFilter,
+    handleSortChange
+  } = useAdminLogisticsState();
 
-  const [appliedFilters, setAppliedFilters] = useState<LogisticsFiltersType>({
-    sellerIds: [],
-    buyerIds: [],
-    containerNumbers: [],
-    shipmentStatuses: [],
-    containerStatuses: [],
-    orderStatuses: [],
-    searchTerm: ''
-  });
-
-  // Check if there are unapplied changes
-  const hasUnappliedChanges = useMemo(() => {
-    return JSON.stringify(pendingFilters) !== JSON.stringify(appliedFilters);
-  }, [pendingFilters, appliedFilters]);
-
-  // Check if search term is unapplied
-  const hasUnappliedSearch = useMemo(() => {
-    const result = pendingFilters.searchTerm !== appliedFilters.searchTerm;
-    console.log('🔍 [Search Check]', {
-      pending: pendingFilters.searchTerm,
-      applied: appliedFilters.searchTerm,
-      hasUnapplied: result
-    });
-    return result;
-  }, [pendingFilters.searchTerm, appliedFilters.searchTerm]);
-
-  // Function to apply filters
+  // Wrap handleApplyFilters to also clear selection
   const handleApplyFilters = () => {
-    setAppliedFilters({ ...pendingFilters });
-    setSelectedOrders([]); // Clear selection when filters change
-  };
-
-  // Function to apply only search term
-  const handleApplySearch = () => {
-    console.log('🔍 [Search] Applying search term:', pendingFilters.searchTerm);
-    setAppliedFilters(prev => ({ ...prev, searchTerm: pendingFilters.searchTerm }));
-    console.log('✅ [Search] Applied filters updated');
-  };
-
-  // Function to clear search
-  const handleClearSearch = () => {
-    console.log('🧹 [Search] Clearing search');
-    setPendingFilters(prev => ({ ...prev, searchTerm: '' }));
-    setAppliedFilters(prev => ({ ...prev, searchTerm: '' }));
-    console.log('✅ [Search] Search cleared');
-  };
-
-  // Function to clear all filters
-  const handleClearFilters = () => {
-    const emptyFilters: LogisticsFiltersType = {
-      sellerIds: [],
-      buyerIds: [],
-      containerNumbers: [],
-      shipmentStatuses: [],
-      containerStatuses: [],
-      orderStatuses: [],
-      searchTerm: ''
-    };
-    setPendingFilters(emptyFilters);
-    setAppliedFilters(emptyFilters);
-    setSelectedOrders([]);
-  };
-
-  // Function to remove specific filter and apply immediately
-  const handleRemoveFilter = (key: keyof LogisticsFiltersType, value: string) => {
-    const currentValues = appliedFilters[key] as string[];
-    const newValues = currentValues.filter(v => v !== value);
-    const newFilters = { ...appliedFilters, [key]: newValues };
-    
-    // Update both pending and applied simultaneously
-    setPendingFilters(newFilters);
-    setAppliedFilters(newFilters);
+    handleApplyFiltersFromHook();
     setSelectedOrders([]);
   };
 
@@ -781,17 +713,17 @@ const AdminLogistics = () => {
   };
 
   const handleSort = (field: keyof Order) => {
-    setSortConfig(current => ({
-      field,
-      direction: 
-        current.field === field
-          ? current.direction === 'asc'
-            ? 'desc'
-            : current.direction === 'desc'
-              ? null
-              : 'asc'
-          : 'asc'
-    }));
+    const current = sortConfig;
+    const newDirection = 
+      current.field === field
+        ? current.direction === 'asc'
+          ? 'desc'
+          : current.direction === 'desc'
+            ? null
+            : 'asc'
+        : 'asc';
+    
+    handleSortChange(field, newDirection);
   };
 
   return (
