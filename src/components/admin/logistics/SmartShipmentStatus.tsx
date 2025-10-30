@@ -32,7 +32,7 @@ const getShipmentStatusColor = (status: ShipmentStatus | null) => {
     case 'not_shipped':
       return 'text-red-600';
     case 'partially_shipped':
-      return 'text-orange-600 font-semibold';
+      return 'text-yellow-600 font-semibold';
     case 'in_transit':
       return 'text-green-600';
     default:
