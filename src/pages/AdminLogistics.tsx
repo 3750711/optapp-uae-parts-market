@@ -1058,7 +1058,7 @@ const AdminLogistics = () => {
                       <ResizableTableHead 
                         columnId="orderStatus"
                         width={columnWidths.orderStatus}
-                        minWidth={100}
+                        minWidth={55}
                         onResize={handleResize}
                       >
                         Статус заказа
@@ -1074,7 +1074,7 @@ const AdminLogistics = () => {
                       <ResizableTableHead 
                         columnId="containerStatus"
                         width={columnWidths.containerStatus}
-                        minWidth={10}
+                        minWidth={28}
                         onResize={handleResize}
                       >
                         Ст.конт.

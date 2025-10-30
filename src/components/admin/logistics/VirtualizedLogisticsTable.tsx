@@ -356,7 +356,7 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
               <ResizableTableHead
                 columnId="orderStatus"
                 width={columnWidths.orderStatus}
-                minWidth={100}
+                minWidth={55}
                 onResize={onResizeColumn}
                 className="border-0"
               >
@@ -374,7 +374,7 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
               <ResizableTableHead
                 columnId="containerStatus"
                 width={columnWidths.containerStatus}
-                minWidth={10}
+                minWidth={28}
                 onResize={onResizeColumn}
                 className="border-0"
               >
