@@ -21,7 +21,7 @@ export const useLocalStorageSettings = <T extends BaseSettings>(
       const stored = localStorage.getItem(key);
       if (stored) {
         const parsedSettings = JSON.parse(stored);
-        return { ...defaultSettings, ...initialSettings, ...parsedSettings } as T;
+        return { ...defaultSettings, ...parsedSettings, ...initialSettings } as T;
       }
     } catch (error) {
       console.error('Error loading settings from localStorage:', error);

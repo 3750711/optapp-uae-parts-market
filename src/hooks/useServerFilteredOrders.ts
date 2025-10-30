@@ -122,7 +122,7 @@ export const useServerFilteredOrders = (
       }
 
       // 6. ФИЛЬТР: Готовность к отправке
-      if (appliedFilters.readyForShipment !== null) {
+      if (appliedFilters.readyForShipment !== null && appliedFilters.readyForShipment !== undefined) {
         query = query.eq('ready_for_shipment', appliedFilters.readyForShipment);
       }
 
