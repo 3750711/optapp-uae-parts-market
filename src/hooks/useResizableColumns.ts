@@ -38,7 +38,7 @@ export const useResizableColumns = (
 
   // Обработчик изменения ширины столбца
   const handleResize = useCallback((columnId: string, width: number) => {
-    const minWidth = 60;
+    const minWidth = 10;
     const maxWidth = 800;
     const validatedWidth = Math.max(minWidth, Math.min(maxWidth, width));
 

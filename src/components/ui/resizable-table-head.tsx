@@ -23,7 +23,7 @@ export const ResizableTableHead = React.forwardRef<
     {
       columnId,
       width,
-      minWidth = 60,
+      minWidth = 10,
       maxWidth = 800,
       onResize,
       sortable = false,
