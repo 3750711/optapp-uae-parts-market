@@ -62,10 +62,10 @@ export const useServerFilteredOrders = (
           containers(status)
         `, { count: 'exact' });
 
-      // === 2. SEARCH TERM (по 7 полям) ===
+      // === 2. SEARCH TERM (по 5 полям + цена/номер заказа) ===
       if (appliedFilters.searchTerm.trim()) {
         const term = appliedFilters.searchTerm.trim();
-        const isNumeric = /^\d+$/.test(term);
+        const isNumeric = /^\d+(\.\d+)?$/.test(term);
         
         console.log('🔎 [Search Query]', {
           term,
@@ -74,20 +74,23 @@ export const useServerFilteredOrders = (
         });
         
         if (isNumeric) {
-          // Точный поиск по номеру заказа (оптимизация для чисел)
-          console.log('✅ [Search] Using exact match for order_number:', term);
-          query = query.eq('order_number', term);
+          // Если число содержит точку - ищем по цене, иначе по номеру заказа
+          if (term.includes('.')) {
+            console.log('✅ [Search] Using exact match for price:', term);
+            query = query.eq('price', parseFloat(term));
+          } else {
+            console.log('✅ [Search] Using exact match for order_number:', term);
+            query = query.eq('order_number', parseInt(term));
+          }
         } else {
-          // Полнотекстовый поиск по 7 полям
-          console.log('✅ [Search] Using fulltext search across 7 fields');
+          // Полнотекстовый поиск по текстовым полям
+          console.log('✅ [Search] Using fulltext search across 5 fields');
           query = query.or(`
             title.ilike.%${term}%,
             brand.ilike.%${term}%,
             model.ilike.%${term}%,
-            article_number.ilike.%${term}%,
             description.ilike.%${term}%,
-            container_number.ilike.%${term}%,
-            order_number.ilike.%${term}%
+            container_number.ilike.%${term}%
           `.replace(/\s+/g, ''));
         }
       }
