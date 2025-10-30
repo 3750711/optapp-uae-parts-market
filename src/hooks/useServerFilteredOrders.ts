@@ -100,18 +100,19 @@ export const useServerFilteredOrders = (
           // Извлекаем числовую часть для поиска по числовым полям
           const numericPart = term.match(/\d+(\.\d+)?/)?.[0];
           
-          console.log('✅ [Search] Normalized hybrid search', {
+          console.log('✅ [Search] Hybrid search (without replace)', {
             originalTerm: term,
             normalizedTerm,
             numericPart: numericPart || 'none'
           });
           
+          // Базовый текстовый поиск (без replace - PostgREST не поддерживает)
           let searchConditions = `
-            replace(title, ' ', '').ilike.%${normalizedTerm}%,
-            replace(brand, ' ', '').ilike.%${normalizedTerm}%,
-            replace(model, ' ', '').ilike.%${normalizedTerm}%,
-            replace(description, ' ', '').ilike.%${normalizedTerm}%,
-            replace(container_number, ' ', '').ilike.%${normalizedTerm}%
+            title.ilike.%${normalizedTerm}%,
+            brand.ilike.%${normalizedTerm}%,
+            model.ilike.%${normalizedTerm}%,
+            description.ilike.%${normalizedTerm}%,
+            container_number.ilike.%${normalizedTerm}%
           `;
           
           // Если есть числовая часть, добавляем поиск по числовым полям
