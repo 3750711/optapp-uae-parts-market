@@ -50,13 +50,23 @@ export const SmartShipmentStatus: React.FC<SmartShipmentStatusProps> = ({
   placeNumber,
   onStatusChange
 }) => {
+  // Локальное состояние для немедленного отображения изменений
+  const [selectedStatus, setSelectedStatus] = React.useState<ShipmentStatus | null>(null);
+  
   const { data: summary, isLoading } = useOrderShipmentSummary(orderId);
   const { isAdmin } = useAdminAccess();
 
-  // Prioritize partially_shipped from orders table, otherwise use calculated status
-  const displayStatus = fallbackStatus === 'partially_shipped' 
-    ? fallbackStatus 
-    : (summary && summary.totalPlaces > 0 ? summary.calculatedStatus : fallbackStatus);
+  // Сбрасываем локальное состояние когда приходят новые данные из базы
+  React.useEffect(() => {
+    setSelectedStatus(null);
+  }, [fallbackStatus]);
+
+  // Используем локальное состояние если оно установлено, иначе fallbackStatus
+  const displayStatus = selectedStatus ?? (
+    fallbackStatus === 'partially_shipped' 
+      ? fallbackStatus 
+      : (summary && summary.totalPlaces > 0 ? summary.calculatedStatus : fallbackStatus)
+  );
 
   const renderCompactInfo = () => {
     if (isLoading) {
@@ -83,7 +93,15 @@ export const SmartShipmentStatus: React.FC<SmartShipmentStatusProps> = ({
     <div className="space-y-1">
       <Select
         value={displayStatus}
-        onValueChange={(value) => onStatusChange(value as ShipmentStatus)}
+        onValueChange={(value) => {
+          const newStatus = value as ShipmentStatus;
+          
+          // 1. Сразу показываем новое значение в UI (оптимистичное обновление)
+          setSelectedStatus(newStatus);
+          
+          // 2. Отправляем изменения в базу
+          onStatusChange(newStatus);
+        }}
       >
         <SelectTrigger className={`w-[140px] h-8 text-sm ${getShipmentStatusColor(displayStatus)}`}>
           <SelectValue>
