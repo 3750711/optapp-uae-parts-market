@@ -94,15 +94,34 @@ export const useServerFilteredOrders = (
             query = query.or(`order_number.eq.${parseInt(term)},price.eq.${num},delivery_price_confirm.eq.${num}`.replace(/\s+/g, ''));
           }
         } else {
-          // Полнотекстовый поиск по текстовым полям
-          console.log('✅ [Search] Using fulltext search across 5 fields');
-          query = query.or(`
-            title.ilike.%${term}%,
-            brand.ilike.%${term}%,
-            model.ilike.%${term}%,
-            description.ilike.%${term}%,
-            container_number.ilike.%${term}%
-          `.replace(/\s+/g, ''));
+          // Нормализуем термин: убираем пробелы для гибкого поиска
+          const normalizedTerm = term.replace(/\s+/g, '');
+          
+          // Извлекаем числовую часть для поиска по числовым полям
+          const numericPart = term.match(/\d+(\.\d+)?/)?.[0];
+          
+          console.log('✅ [Search] Normalized hybrid search', {
+            originalTerm: term,
+            normalizedTerm,
+            numericPart: numericPart || 'none'
+          });
+          
+          let searchConditions = `
+            replace(title, ' ', '').ilike.%${normalizedTerm}%,
+            replace(brand, ' ', '').ilike.%${normalizedTerm}%,
+            replace(model, ' ', '').ilike.%${normalizedTerm}%,
+            replace(description, ' ', '').ilike.%${normalizedTerm}%,
+            replace(container_number, ' ', '').ilike.%${normalizedTerm}%
+          `;
+          
+          // Если есть числовая часть, добавляем поиск по числовым полям
+          if (numericPart) {
+            const numValue = parseFloat(numericPart);
+            const intValue = parseInt(numericPart);
+            searchConditions += `,order_number.eq.${intValue},price.eq.${numValue},delivery_price_confirm.eq.${numValue}`;
+          }
+          
+          query = query.or(searchConditions.replace(/\s+/g, ''));
         }
       }
 
