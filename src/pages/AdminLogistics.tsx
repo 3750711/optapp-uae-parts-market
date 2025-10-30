@@ -247,33 +247,62 @@ const AdminLogistics = () => {
     error
   } = useServerFilteredOrders(appliedFilters, sortConfig);
 
+  const orders = data?.pages.flatMap(page => page.orders) || [];
+  const totalCount = data?.pages[0]?.totalCount || 0;
+
   // Debug: track orders data updates
   useEffect(() => {
     console.log('📊 [Orders] Data updated:', {
       pages: data?.pages.length || 0,
-      totalOrders: data?.pages[0]?.totalCount || 0,
+      totalOrders: totalCount,
       loadedOrders: orders.length,
       appliedSearchTerm: appliedFilters.searchTerm
     });
-  }, [data, appliedFilters.searchTerm]);
-
-  const orders = data?.pages.flatMap(page => page.orders) || [];
-  const totalCount = data?.pages[0]?.totalCount || 0;
+  }, [data, appliedFilters.searchTerm, orders.length, totalCount]);
 
   useEffect(() => {
     const currentRef = loadMoreRef.current;
     
-    if (!currentRef || !hasNextPage || isFetchingNextPage || totalCount === 0) {
+    // Не активируем observer пока не загружена хотя бы первая страница
+    if (!currentRef || !hasNextPage || isFetchingNextPage || totalCount === 0 || orders.length === 0) {
       console.log('⏸️ [Infinite Scroll] Observer disabled:', {
         hasRef: !!currentRef,
         hasNextPage,
         isFetchingNextPage,
-        totalCount
+        totalCount,
+        ordersLoaded: orders.length
       });
       return;
     }
 
-    console.log('👀 [Infinite Scroll] Observer enabled');
+    console.log('👀 [Infinite Scroll] Observer enabled', {
+      loadedOrders: orders.length,
+      totalCount,
+      hasNextPage,
+      isFetchingNextPage,
+      lastFetchTime: lastFetchTimeRef.current,
+      isLoading: isLoadingRef.current
+    });
+
+    let fetchTimeout: NodeJS.Timeout | null = null;
+
+    const debouncedFetchNextPage = () => {
+      if (fetchTimeout) {
+        clearTimeout(fetchTimeout);
+      }
+      
+      fetchTimeout = setTimeout(() => {
+        if (hasNextPage && !isFetchingNextPage && !isLoadingRef.current) {
+          isLoadingRef.current = true;
+          lastFetchTimeRef.current = Date.now();
+          
+          fetchNextPage().finally(() => {
+            isLoadingRef.current = false;
+            fetchTimeout = null;
+          });
+        }
+      }, 100);
+    };
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -281,24 +310,19 @@ const AdminLogistics = () => {
           const now = Date.now();
           const timeSinceLastFetch = now - lastFetchTimeRef.current;
           
-          // 🔴 RATE LIMITING: не чаще чем раз в 300мс
-          if (timeSinceLastFetch > 300) {
+          // 🔴 RATE LIMITING: не чаще чем раз в 500мс
+          if (timeSinceLastFetch > 500) {
             console.log('🔽 [Infinite Scroll] Threshold reached - loading next page', {
               loadedOrders: orders.length,
               totalCount,
               timeSinceLastFetch
             });
             
-            isLoadingRef.current = true;
-            lastFetchTimeRef.current = now;
-            
-            fetchNextPage().finally(() => {
-              isLoadingRef.current = false;
-            });
+            debouncedFetchNextPage();
           } else {
             console.log('⏱️ [Infinite Scroll] Rate limited', {
               timeSinceLastFetch,
-              nextAvailableIn: 300 - timeSinceLastFetch
+              nextAvailableIn: 500 - timeSinceLastFetch
             });
           }
         }
@@ -312,10 +336,13 @@ const AdminLogistics = () => {
     observer.observe(currentRef);
 
     return () => {
+      if (fetchTimeout) {
+        clearTimeout(fetchTimeout);
+      }
       observer.unobserve(currentRef);
       observer.disconnect();
     };
-  }, [hasNextPage, isFetchingNextPage, totalCount, orders.length, fetchNextPage]);
+  }, [hasNextPage, isFetchingNextPage, totalCount]);
 
   // Debug: track hasNextPage changes
   useEffect(() => {
