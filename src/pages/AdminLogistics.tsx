@@ -979,6 +979,14 @@ const AdminLogistics = () => {
                         />
                       </ResizableTableHead>
                       <ResizableTableHead 
+                        columnId="actions"
+                        width={columnWidths.actions}
+                        minWidth={80}
+                        onResize={handleResize}
+                      >
+                        Действия
+                      </ResizableTableHead>
+                      <ResizableTableHead 
                         columnId="orderNumber"
                         width={columnWidths.orderNumber}
                         minWidth={80}
@@ -1087,14 +1095,6 @@ const AdminLogistics = () => {
                       >
                         Ст.отгр.
                       </ResizableTableHead>
-                      <ResizableTableHead 
-                        columnId="actions"
-                        width={columnWidths.actions}
-                        minWidth={80}
-                        onResize={handleResize}
-                      >
-                        Действия
-                      </ResizableTableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1107,6 +1107,29 @@ const AdminLogistics = () => {
                               checked={selectedOrders.includes(order.id)}
                               onCheckedChange={() => handleSelectOrder(order.id)}
                             />
+                          </TableCell>
+                          <TableCell style={{ width: columnWidths.actions, minWidth: columnWidths.actions }}>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleViewDetails(order.id)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                                 {(order.shipment_status === 'partially_shipped' || order.shipment_status === 'not_shipped' || order.shipment_status === 'in_transit') && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => setManagingPlacesOrderId(order.id)}
+                                    title={order.shipment_status === 'partially_shipped' ? "Управлять местами" : "Просмотр мест"}
+                                  >
+                                    <Package className="h-4 w-4" />
+                                  </Button>
+                                )}
+                            </div>
                           </TableCell>
                           <TableCell className="font-medium" style={{ width: columnWidths.orderNumber, minWidth: columnWidths.orderNumber }}>
                             {order.order_number}
@@ -1201,29 +1224,6 @@ const AdminLogistics = () => {
                                placeNumber={order.place_number || 1}
                                onStatusChange={(status) => handleUpdateShipmentStatus(order.id, status)}
                              />
-                           </TableCell>
-                           <TableCell style={{ width: columnWidths.actions, minWidth: columnWidths.actions }}>
-                             <div className="flex items-center gap-1">
-                               <Button
-                                 variant="ghost"
-                                 size="icon"
-                                 className="h-8 w-8"
-                                 onClick={() => handleViewDetails(order.id)}
-                               >
-                                 <Eye className="h-4 w-4" />
-                               </Button>
-                                  {(order.shipment_status === 'partially_shipped' || order.shipment_status === 'not_shipped' || order.shipment_status === 'in_transit') && (
-                                   <Button
-                                     variant="ghost"
-                                     size="icon"
-                                     className="h-8 w-8"
-                                     onClick={() => setManagingPlacesOrderId(order.id)}
-                                     title={order.shipment_status === 'partially_shipped' ? "Управлять местами" : "Просмотр мест"}
-                                   >
-                                     <Package className="h-4 w-4" />
-                                   </Button>
-                                 )}
-                             </div>
                            </TableCell>
                         </TableRow>
                       );

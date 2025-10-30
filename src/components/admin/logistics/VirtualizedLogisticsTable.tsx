@@ -86,6 +86,34 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
           />
         </div>
 
+        {/* Actions */}
+        <div 
+          className="flex items-center px-4 flex-shrink-0"
+          style={{ width: columnWidths.actions, minWidth: columnWidths.actions }}
+        >
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => onViewDetails(order.id)}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+            {(order.shipment_status === 'partially_shipped' || order.shipment_status === 'not_shipped' || order.shipment_status === 'in_transit') && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => onManagePlaces(order.id)}
+                title={order.shipment_status === 'partially_shipped' ? "Управлять местами" : "Просмотр мест"}
+              >
+                <Package className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+
         {/* Order Number */}
         <div 
           className="flex items-center px-4 font-medium text-sm flex-shrink-0"
@@ -232,34 +260,6 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
             onStatusChange={(status) => onUpdateShipmentStatus(order.id, status)}
           />
         </div>
-
-        {/* Actions */}
-        <div 
-          className="flex items-center px-4 flex-shrink-0"
-          style={{ width: columnWidths.actions, minWidth: columnWidths.actions }}
-        >
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => onViewDetails(order.id)}
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
-            {(order.shipment_status === 'partially_shipped' || order.shipment_status === 'not_shipped' || order.shipment_status === 'in_transit') && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => onManagePlaces(order.id)}
-                title={order.shipment_status === 'partially_shipped' ? "Управлять местами" : "Просмотр мест"}
-              >
-                <Package className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </div>
       </div>
     );
   });
@@ -289,6 +289,15 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
                 className="border-0"
               >
                 <span></span>
+              </ResizableTableHead>
+              <ResizableTableHead
+                columnId="actions"
+                width={columnWidths.actions}
+                minWidth={80}
+                onResize={onResizeColumn}
+                className="border-0"
+              >
+                Действия
               </ResizableTableHead>
               <ResizableTableHead
                 columnId="orderNumber"
@@ -388,15 +397,6 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
                 className="border-0"
               >
                 Ст.отгр.
-              </ResizableTableHead>
-              <ResizableTableHead
-                columnId="actions"
-                width={columnWidths.actions}
-                minWidth={80}
-                onResize={onResizeColumn}
-                className="border-0"
-              >
-                Действия
               </ResizableTableHead>
             </tr>
           </thead>
