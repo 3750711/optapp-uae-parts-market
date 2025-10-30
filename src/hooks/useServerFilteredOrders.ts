@@ -35,6 +35,12 @@ export const useServerFilteredOrders = (
   return useInfiniteQuery({
     queryKey: ['logistics-orders-filtered', appliedFilters, sortConfig],
     queryFn: async ({ pageParam = 0 }) => {
+      console.log('🔍 [ServerFilter] Starting query with:', {
+        pageParam,
+        searchTerm: appliedFilters.searchTerm,
+        hasSearch: !!appliedFilters.searchTerm.trim()
+      });
+      
       const from = pageParam * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
 
@@ -53,11 +59,19 @@ export const useServerFilteredOrders = (
         const term = appliedFilters.searchTerm.trim();
         const isNumeric = /^\d+$/.test(term);
         
+        console.log('🔎 [Search Query]', {
+          term,
+          isNumeric,
+          willUseExactMatch: isNumeric
+        });
+        
         if (isNumeric) {
           // Точный поиск по номеру заказа (оптимизация для чисел)
+          console.log('✅ [Search] Using exact match for order_number:', term);
           query = query.eq('order_number', term);
         } else {
           // Полнотекстовый поиск по 7 полям
+          console.log('✅ [Search] Using fulltext search across 7 fields');
           query = query.or(`
             title.ilike.%${term}%,
             brand.ilike.%${term}%,
@@ -182,6 +196,12 @@ export const useServerFilteredOrders = (
       const { data: orders, error, count } = await query.range(from, to);
 
       if (error) throw error;
+
+      console.log('✅ [ServerFilter] Query completed:', {
+        ordersCount: orders?.length || 0,
+        totalCount: count,
+        searchTerm: appliedFilters.searchTerm
+      });
       
       return {
         orders: orders as Order[],

@@ -163,7 +163,13 @@ const AdminLogistics = () => {
 
   // Check if search term is unapplied
   const hasUnappliedSearch = useMemo(() => {
-    return pendingFilters.searchTerm !== appliedFilters.searchTerm;
+    const result = pendingFilters.searchTerm !== appliedFilters.searchTerm;
+    console.log('🔍 [Search Check]', {
+      pending: pendingFilters.searchTerm,
+      applied: appliedFilters.searchTerm,
+      hasUnapplied: result
+    });
+    return result;
   }, [pendingFilters.searchTerm, appliedFilters.searchTerm]);
 
   // Function to apply filters
@@ -174,13 +180,17 @@ const AdminLogistics = () => {
 
   // Function to apply only search term
   const handleApplySearch = () => {
+    console.log('🔍 [Search] Applying search term:', pendingFilters.searchTerm);
     setAppliedFilters(prev => ({ ...prev, searchTerm: pendingFilters.searchTerm }));
+    console.log('✅ [Search] Applied filters updated');
   };
 
   // Function to clear search
   const handleClearSearch = () => {
+    console.log('🧹 [Search] Clearing search');
     setPendingFilters(prev => ({ ...prev, searchTerm: '' }));
     setAppliedFilters(prev => ({ ...prev, searchTerm: '' }));
+    console.log('✅ [Search] Search cleared');
   };
 
   // Function to clear all filters
@@ -234,6 +244,16 @@ const AdminLogistics = () => {
     isLoading,
     error
   } = useServerFilteredOrders(appliedFilters, sortConfig);
+
+  // Debug: track orders data updates
+  useEffect(() => {
+    console.log('📊 [Orders] Data updated:', {
+      pages: data?.pages.length || 0,
+      totalOrders: data?.pages[0]?.totalCount || 0,
+      loadedOrders: orders.length,
+      appliedSearchTerm: appliedFilters.searchTerm
+    });
+  }, [data, appliedFilters.searchTerm]);
 
   useEffect(() => {
     const currentRef = loadMoreRef.current; // Сохраняем ссылку

@@ -91,9 +91,15 @@ export const LogisticsFilters: React.FC<LogisticsFiltersProps> = ({
           <Input
             placeholder="Поиск по номеру заказа, названию товара, артикулу..."
             value={pendingFilters.searchTerm}
-            onChange={(e) => onPendingFiltersChange({ ...pendingFilters, searchTerm: e.target.value })}
+            onChange={(e) => {
+              const newValue = e.target.value;
+              console.log('📝 [Search Input] Value changed:', newValue);
+              onPendingFiltersChange({ ...pendingFilters, searchTerm: newValue });
+            }}
             onKeyDown={(e) => {
+              console.log('⌨️ [Search Input] Key pressed:', e.key);
               if (e.key === 'Enter' && hasUnappliedSearch) {
+                console.log('✅ [Search Input] Enter pressed, applying search');
                 onApplySearch();
               }
             }}
