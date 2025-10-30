@@ -578,6 +578,7 @@ const AdminLogistics = () => {
         'OPT ID покупателя': order.buyer?.opt_id || 'Не указано',
         'Номер контейнера': order.container_number || 'Не указан',
         'Статус отгрузки': getShipmentStatusLabel(order.shipment_status as ShipmentStatus),
+        'Готов к отправке': order.ready_for_shipment ? 'Да' : 'Нет',
       }));
 
     const ws = XLSX.utils.json_to_sheet(selectedOrdersData);
