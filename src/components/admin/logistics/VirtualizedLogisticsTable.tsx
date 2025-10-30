@@ -16,6 +16,7 @@ import {
 import { SmartShipmentStatus } from "@/components/admin/logistics/SmartShipmentStatus";
 import { ContainerEditableWrapper } from "@/components/admin/logistics/ContainerEditableWrapper";
 import { Database } from "@/integrations/supabase/types";
+import { ResizableTableHead } from '@/components/ui/resizable-table-head';
 
 type ContainerStatus = 'waiting' | 'sent_from_uae' | 'transit_iran' | 'to_kazakhstan' | 'customs' | 'cleared_customs' | 'received';
 type ShipmentStatus = 'not_shipped' | 'partially_shipped' | 'in_transit';
@@ -37,6 +38,8 @@ interface VirtualizedLogisticsTableProps {
   shipmentSummaries: Map<string, any> | undefined;
   onUpdateShipmentStatus: (orderId: string, status: ShipmentStatus) => void;
   getCompactOrderInfo: (order: Order) => { buyerInfo: string; sellerInfo: string };
+  columnWidths: Record<string, number>;
+  onResizeColumn: (columnId: string, width: number) => void;
 }
 
 export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
@@ -56,6 +59,8 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
   shipmentSummaries,
   onUpdateShipmentStatus,
   getCompactOrderInfo,
+  columnWidths,
+  onResizeColumn,
 }) => {
   const ROW_HEIGHT = 80;
   const CONTAINER_HEIGHT = Math.min(600, window.innerHeight - 400);
@@ -71,7 +76,10 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
         className={`flex items-stretch border-b hover:bg-muted/50 ${isSelected ? 'bg-accent' : ''}`}
       >
         {/* Checkbox */}
-        <div className="flex items-center justify-center w-[40px] px-2 flex-shrink-0">
+        <div 
+          className="flex items-center justify-center px-2 flex-shrink-0"
+          style={{ width: columnWidths.checkbox, minWidth: columnWidths.checkbox }}
+        >
           <Checkbox
             checked={isSelected}
             onCheckedChange={() => onSelectOrder(order.id)}
@@ -79,27 +87,43 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
         </div>
 
         {/* Order Number */}
-        <div className="flex items-center w-[100px] px-4 font-medium text-sm flex-shrink-0">
+        <div 
+          className="flex items-center px-4 font-medium text-sm flex-shrink-0"
+          style={{ width: columnWidths.orderNumber, minWidth: columnWidths.orderNumber }}
+        >
           {order.order_number}
         </div>
 
         {/* Seller */}
-        <div className="flex items-center min-w-[200px] px-4 text-sm flex-shrink-0">
+        <div 
+          className="flex items-center px-4 text-sm flex-shrink-0"
+          style={{ width: columnWidths.seller, minWidth: columnWidths.seller }}
+        >
           {sellerInfo}
         </div>
 
         {/* Buyer */}
-        <div className="flex items-center min-w-[200px] px-4 text-sm flex-shrink-0">
+        <div 
+          className="flex items-center px-4 text-sm flex-shrink-0"
+          style={{ width: columnWidths.buyer, minWidth: columnWidths.buyer }}
+        >
           {buyerInfo}
         </div>
 
         {/* Title */}
-        <div className="flex items-center min-w-[200px] px-4 text-sm truncate flex-shrink-0" title={order.title}>
+        <div 
+          className="flex items-center px-4 text-sm truncate flex-shrink-0" 
+          title={order.title}
+          style={{ width: columnWidths.title, minWidth: columnWidths.title, maxWidth: columnWidths.title }}
+        >
           {order.title || 'Нет названия'}
         </div>
 
         {/* Price */}
-        <div className="flex items-center w-[100px] px-4 text-sm flex-shrink-0">
+        <div 
+          className="flex items-center px-4 text-sm flex-shrink-0"
+          style={{ width: columnWidths.price, minWidth: columnWidths.price }}
+        >
           {order.price ? 
             order.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
             : '-'
@@ -107,12 +131,18 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
         </div>
 
         {/* Place Number */}
-        <div className="flex items-center w-[80px] px-4 text-sm flex-shrink-0">
+        <div 
+          className="flex items-center px-4 text-sm flex-shrink-0"
+          style={{ width: columnWidths.placeNumber, minWidth: columnWidths.placeNumber }}
+        >
           {order.place_number}
         </div>
 
         {/* Delivery Price */}
-        <div className="flex items-center w-[100px] px-4 text-sm flex-shrink-0">
+        <div 
+          className="flex items-center px-4 text-sm flex-shrink-0"
+          style={{ width: columnWidths.deliveryPrice, minWidth: columnWidths.deliveryPrice }}
+        >
           {order.delivery_price_confirm ? 
             `$${order.delivery_price_confirm}` : 
             '-'
@@ -120,12 +150,18 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
         </div>
 
         {/* Order Status */}
-        <div className="flex items-center w-[120px] px-4 text-sm flex-shrink-0">
+        <div 
+          className="flex items-center px-4 text-sm flex-shrink-0"
+          style={{ width: columnWidths.orderStatus, minWidth: columnWidths.orderStatus }}
+        >
           <OrderStatusBadge status={order.status as any} />
         </div>
 
         {/* Container Number */}
-        <div className="flex items-center min-w-[200px] px-4 text-sm flex-shrink-0">
+        <div 
+          className="flex items-center px-4 text-sm flex-shrink-0"
+          style={{ width: columnWidths.containerNumber, minWidth: columnWidths.containerNumber }}
+        >
           {editingContainer === order.id ? (
             <div className="flex items-center space-x-2">
               <Select
@@ -170,7 +206,10 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
         </div>
 
         {/* Container Status */}
-        <div className="flex items-center min-w-[150px] px-4 text-sm flex-shrink-0">
+        <div 
+          className="flex items-center px-4 text-sm flex-shrink-0"
+          style={{ width: columnWidths.containerStatus, minWidth: columnWidths.containerStatus }}
+        >
           <div className={getStatusColor(order.containers?.[0]?.status as ContainerStatus)}>
             {getStatusLabel(order.containers?.[0]?.status as ContainerStatus)}
             {order.containers && order.containers.length > 1 && (
@@ -182,7 +221,10 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
         </div>
 
         {/* Shipment Status */}
-        <div className="flex items-center min-w-[150px] px-4 text-sm flex-shrink-0">
+        <div 
+          className="flex items-center px-4 text-sm flex-shrink-0"
+          style={{ width: columnWidths.shipmentStatus, minWidth: columnWidths.shipmentStatus }}
+        >
           <SmartShipmentStatus
             orderId={order.id}
             fallbackStatus={(order.shipment_status as ShipmentStatus) || 'not_shipped'}
@@ -192,7 +234,10 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center w-[100px] px-4 flex-shrink-0">
+        <div 
+          className="flex items-center px-4 flex-shrink-0"
+          style={{ width: columnWidths.actions, minWidth: columnWidths.actions }}
+        >
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
@@ -232,20 +277,130 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
   return (
     <div className="rounded-md border">
       {/* Table Header */}
-      <div className="flex items-stretch border-b bg-muted/50 font-medium text-sm">
-        <div className="flex items-center justify-center w-[40px] px-2 flex-shrink-0"></div>
-        <div className="flex items-center w-[100px] px-4 flex-shrink-0">№ заказа</div>
-        <div className="flex items-center min-w-[200px] px-4 flex-shrink-0">Продавец</div>
-        <div className="flex items-center min-w-[200px] px-4 flex-shrink-0">Покупатель</div>
-        <div className="flex items-center min-w-[200px] px-4 flex-shrink-0">Наименование</div>
-        <div className="flex items-center w-[100px] px-4 flex-shrink-0">Цена ($)</div>
-        <div className="flex items-center w-[80px] px-4 flex-shrink-0">Мест</div>
-        <div className="flex items-center w-[100px] px-4 flex-shrink-0">Доставка</div>
-        <div className="flex items-center w-[120px] px-4 flex-shrink-0">Статус заказа</div>
-        <div className="flex items-center min-w-[200px] px-4 flex-shrink-0">Контейнер</div>
-        <div className="flex items-center min-w-[150px] px-4 flex-shrink-0">Статус контейнера</div>
-        <div className="flex items-center min-w-[150px] px-4 flex-shrink-0">Статус отгрузки</div>
-        <div className="flex items-center w-[100px] px-4 flex-shrink-0">Действия</div>
+      <div className="overflow-hidden">
+        <table className="w-full">
+          <thead className="border-b bg-muted/50">
+            <tr className="flex items-stretch">
+              <ResizableTableHead
+                columnId="checkbox"
+                width={columnWidths.checkbox}
+                minWidth={40}
+                onResize={onResizeColumn}
+                className="border-0"
+              >
+                <span></span>
+              </ResizableTableHead>
+              <ResizableTableHead
+                columnId="orderNumber"
+                width={columnWidths.orderNumber}
+                minWidth={80}
+                onResize={onResizeColumn}
+                className="border-0"
+              >
+                № заказа
+              </ResizableTableHead>
+              <ResizableTableHead
+                columnId="seller"
+                width={columnWidths.seller}
+                minWidth={150}
+                onResize={onResizeColumn}
+                className="border-0"
+              >
+                Продавец
+              </ResizableTableHead>
+              <ResizableTableHead
+                columnId="buyer"
+                width={columnWidths.buyer}
+                minWidth={150}
+                onResize={onResizeColumn}
+                className="border-0"
+              >
+                Покупатель
+              </ResizableTableHead>
+              <ResizableTableHead
+                columnId="title"
+                width={columnWidths.title}
+                minWidth={150}
+                onResize={onResizeColumn}
+                className="border-0"
+              >
+                Наименование
+              </ResizableTableHead>
+              <ResizableTableHead
+                columnId="price"
+                width={columnWidths.price}
+                minWidth={80}
+                onResize={onResizeColumn}
+                className="border-0"
+              >
+                Цена ($)
+              </ResizableTableHead>
+              <ResizableTableHead
+                columnId="placeNumber"
+                width={columnWidths.placeNumber}
+                minWidth={60}
+                onResize={onResizeColumn}
+                className="border-0"
+              >
+                Мест
+              </ResizableTableHead>
+              <ResizableTableHead
+                columnId="deliveryPrice"
+                width={columnWidths.deliveryPrice}
+                minWidth={80}
+                onResize={onResizeColumn}
+                className="border-0"
+              >
+                Доставка
+              </ResizableTableHead>
+              <ResizableTableHead
+                columnId="orderStatus"
+                width={columnWidths.orderStatus}
+                minWidth={100}
+                onResize={onResizeColumn}
+                className="border-0"
+              >
+                Статус заказа
+              </ResizableTableHead>
+              <ResizableTableHead
+                columnId="containerNumber"
+                width={columnWidths.containerNumber}
+                minWidth={150}
+                onResize={onResizeColumn}
+                className="border-0"
+              >
+                Контейнер
+              </ResizableTableHead>
+              <ResizableTableHead
+                columnId="containerStatus"
+                width={columnWidths.containerStatus}
+                minWidth={120}
+                onResize={onResizeColumn}
+                className="border-0"
+              >
+                Статус контейнера
+              </ResizableTableHead>
+              <ResizableTableHead
+                columnId="shipmentStatus"
+                width={columnWidths.shipmentStatus}
+                minWidth={120}
+                onResize={onResizeColumn}
+                className="border-0"
+              >
+                Статус отгрузки
+              </ResizableTableHead>
+              <ResizableTableHead
+                columnId="actions"
+                width={columnWidths.actions}
+                minWidth={80}
+                onResize={onResizeColumn}
+                className="border-0"
+              >
+                Действия
+              </ResizableTableHead>
+            </tr>
+          </thead>
+        </table>
       </div>
 
       {/* Virtualized Table Body */}

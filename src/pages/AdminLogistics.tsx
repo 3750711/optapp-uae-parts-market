@@ -5,8 +5,10 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import * as XLSX from 'xlsx';
 import { FileText, Download, ChevronUp, ChevronDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useResizableColumns } from '@/hooks/useResizableColumns';
+import { ResizableTableHead } from '@/components/ui/resizable-table-head';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Eye, Container, Save, RefreshCw } from "lucide-react";
+import { Loader2, Eye, Container, Save, RefreshCw, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
@@ -90,6 +92,28 @@ const AdminLogistics = () => {
   const { profile } = useAuth();
   const { containers, isLoading: containersLoading } = useContainers();
   const { syncShipmentsWithOrder } = useOrderPlacesSync();
+
+  // Resizable columns
+  const DEFAULT_COLUMN_WIDTHS = {
+    checkbox: 40,
+    orderNumber: 100,
+    seller: 200,
+    buyer: 200,
+    title: 250,
+    price: 100,
+    placeNumber: 80,
+    deliveryPrice: 100,
+    orderStatus: 120,
+    containerNumber: 200,
+    containerStatus: 150,
+    shipmentStatus: 150,
+    actions: 100,
+  };
+
+  const { columnWidths, handleResize, resetWidths } = useResizableColumns(
+    'admin-logistics-table',
+    DEFAULT_COLUMN_WIDTHS
+  );
 
   
   const [confirmContainerDialog, setConfirmContainerDialog] = useState(false);
@@ -833,6 +857,15 @@ const AdminLogistics = () => {
                       <FileText className="h-4 w-4 mr-2" />
                       Экспорт в Excel
                     </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={resetWidths}
+                      size="sm"
+                      title="Сбросить ширину столбцов к значениям по умолчанию"
+                    >
+                      <RotateCcw className="h-3 w-3 mr-1" />
+                      Сбросить ширину
+                    </Button>
                   </div>
                 ) : bulkEditingShipmentStatus ? (
                   <div className="flex items-center gap-2">
@@ -923,79 +956,142 @@ const AdminLogistics = () => {
                 shipmentSummaries={shipmentSummaries}
                 onUpdateShipmentStatus={handleUpdateShipmentStatus}
                 getCompactOrderInfo={getCompactOrderInfo}
+                columnWidths={columnWidths}
+                onResizeColumn={handleResize}
               />
             ) : (
               <div className="rounded-md border overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[40px]">
+                      <ResizableTableHead 
+                        columnId="checkbox"
+                        width={columnWidths.checkbox}
+                        minWidth={40}
+                        onResize={handleResize}
+                      >
                         <Checkbox 
                           checked={orders?.length > 0 && orders.length === selectedOrders.length}
                           onCheckedChange={handleSelectAll}
                         />
-                      </TableHead>
-                      <TableHead 
-                        className="w-[100px]"
+                      </ResizableTableHead>
+                      <ResizableTableHead 
+                        columnId="orderNumber"
+                        width={columnWidths.orderNumber}
+                        minWidth={80}
+                        onResize={handleResize}
                         sortable
                         sorted={sortConfig.field === 'order_number' ? sortConfig.direction : null}
                         onSort={() => handleSort('order_number')}
                       >
                         № заказа
-                      </TableHead>
-                      <TableHead 
-                        className="min-w-[200px]"
+                      </ResizableTableHead>
+                      <ResizableTableHead 
+                        columnId="seller"
+                        width={columnWidths.seller}
+                        minWidth={150}
+                        onResize={handleResize}
                         sortable
                         sorted={sortConfig.field === 'seller_opt_id' ? sortConfig.direction : null}
                         onSort={() => handleSort('seller_opt_id')}
                       >
                         Продавец
-                      </TableHead>
-                      <TableHead 
-                        className="min-w-[200px]"
+                      </ResizableTableHead>
+                      <ResizableTableHead 
+                        columnId="buyer"
+                        width={columnWidths.buyer}
+                        minWidth={150}
+                        onResize={handleResize}
                         sortable
                         sorted={sortConfig.field === 'buyer_opt_id' ? sortConfig.direction : null}
                         onSort={() => handleSort('buyer_opt_id')}
                       >
                         Покупатель
-                      </TableHead>
-                      <TableHead 
-                        className="min-w-[200px]"
+                      </ResizableTableHead>
+                      <ResizableTableHead 
+                        columnId="title"
+                        width={columnWidths.title}
+                        minWidth={150}
+                        onResize={handleResize}
                         sortable
                         sorted={sortConfig.field === 'title' ? sortConfig.direction : null}
                         onSort={() => handleSort('title')}
                       >
                         Наименование
-                      </TableHead>
-                      <TableHead 
-                        className="w-[100px]"
+                      </ResizableTableHead>
+                      <ResizableTableHead 
+                        columnId="price"
+                        width={columnWidths.price}
+                        minWidth={80}
+                        onResize={handleResize}
                         sortable
                         sorted={sortConfig.field === 'price' ? sortConfig.direction : null}
                         onSort={() => handleSort('price')}
                       >
                         Цена ($)
-                      </TableHead>
-                      <TableHead 
-                        className="w-[80px]"
+                      </ResizableTableHead>
+                      <ResizableTableHead 
+                        columnId="placeNumber"
+                        width={columnWidths.placeNumber}
+                        minWidth={60}
+                        onResize={handleResize}
                         sortable
                         sorted={sortConfig.field === 'place_number' ? sortConfig.direction : null}
                         onSort={() => handleSort('place_number')}
                       >
                         Мест
-                      </TableHead>
-                      <TableHead 
-                        className="w-[100px]"
+                      </ResizableTableHead>
+                      <ResizableTableHead 
+                        columnId="deliveryPrice"
+                        width={columnWidths.deliveryPrice}
+                        minWidth={80}
+                        onResize={handleResize}
                         sortable
                         sorted={sortConfig.field === 'delivery_price_confirm' ? sortConfig.direction : null}
                         onSort={() => handleSort('delivery_price_confirm')}
                       >
                         Доставка
-                      </TableHead>
-                      <TableHead className="w-[120px]">Статус заказа</TableHead>
-                      <TableHead className="min-w-[200px]">Контейнер</TableHead>
-                      <TableHead className="min-w-[150px]">Статус контейнера</TableHead>
-                      <TableHead className="min-w-[150px]">Статус отгрузки</TableHead>
-                      <TableHead className="w-[100px]">Действия</TableHead>
+                      </ResizableTableHead>
+                      <ResizableTableHead 
+                        columnId="orderStatus"
+                        width={columnWidths.orderStatus}
+                        minWidth={100}
+                        onResize={handleResize}
+                      >
+                        Статус заказа
+                      </ResizableTableHead>
+                      <ResizableTableHead 
+                        columnId="containerNumber"
+                        width={columnWidths.containerNumber}
+                        minWidth={150}
+                        onResize={handleResize}
+                      >
+                        Контейнер
+                      </ResizableTableHead>
+                      <ResizableTableHead 
+                        columnId="containerStatus"
+                        width={columnWidths.containerStatus}
+                        minWidth={120}
+                        onResize={handleResize}
+                      >
+                        Статус контейнера
+                      </ResizableTableHead>
+                      <ResizableTableHead 
+                        columnId="shipmentStatus"
+                        width={columnWidths.shipmentStatus}
+                        minWidth={120}
+                        onResize={handleResize}
+                      >
+                        Статус отгрузки
+                      </ResizableTableHead>
+                      <ResizableTableHead 
+                        columnId="actions"
+                        width={columnWidths.actions}
+                        minWidth={80}
+                        onResize={handleResize}
+                      >
+                        Действия
+                      </ResizableTableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1003,35 +1099,43 @@ const AdminLogistics = () => {
                       const { buyerInfo, sellerInfo } = getCompactOrderInfo(order);
                       return (
                         <TableRow key={order.id} className="text-sm">
-                          <TableCell>
+                          <TableCell style={{ width: columnWidths.checkbox, minWidth: columnWidths.checkbox }}>
                             <Checkbox
                               checked={selectedOrders.includes(order.id)}
                               onCheckedChange={() => handleSelectOrder(order.id)}
                             />
                           </TableCell>
-                          <TableCell className="font-medium">{order.order_number}</TableCell>
-                          <TableCell>{sellerInfo}</TableCell>
-                          <TableCell>{buyerInfo}</TableCell>
-                          <TableCell className="max-w-[200px] truncate" title={order.title}>
+                          <TableCell className="font-medium" style={{ width: columnWidths.orderNumber, minWidth: columnWidths.orderNumber }}>
+                            {order.order_number}
+                          </TableCell>
+                          <TableCell style={{ width: columnWidths.seller, minWidth: columnWidths.seller }}>
+                            {sellerInfo}
+                          </TableCell>
+                          <TableCell style={{ width: columnWidths.buyer, minWidth: columnWidths.buyer }}>
+                            {buyerInfo}
+                          </TableCell>
+                          <TableCell className="truncate" title={order.title} style={{ width: columnWidths.title, minWidth: columnWidths.title, maxWidth: columnWidths.title }}>
                             {order.title || 'Нет названия'}
                           </TableCell>
-                          <TableCell>
+                          <TableCell style={{ width: columnWidths.price, minWidth: columnWidths.price }}>
                             {order.price ? 
                               order.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
                               : '-'
                             }
                           </TableCell>
-                          <TableCell>{order.place_number}</TableCell>
-                          <TableCell>
+                          <TableCell style={{ width: columnWidths.placeNumber, minWidth: columnWidths.placeNumber }}>
+                            {order.place_number}
+                          </TableCell>
+                          <TableCell style={{ width: columnWidths.deliveryPrice, minWidth: columnWidths.deliveryPrice }}>
                             {order.delivery_price_confirm ? 
                               `$${order.delivery_price_confirm}` : 
                               '-'
                             }
                           </TableCell>
-                          <TableCell>
+                          <TableCell style={{ width: columnWidths.orderStatus, minWidth: columnWidths.orderStatus }}>
                             <OrderStatusBadge status={order.status as any} />
                           </TableCell>
-                          <TableCell>
+                          <TableCell style={{ width: columnWidths.containerNumber, minWidth: columnWidths.containerNumber }}>
                              {editingContainer === order.id ? (
                                <div className="flex items-center space-x-2">
                                  <Select
@@ -1077,7 +1181,7 @@ const AdminLogistics = () => {
                                  />
                               )}
                            </TableCell>
-                            <TableCell>
+                            <TableCell style={{ width: columnWidths.containerStatus, minWidth: columnWidths.containerStatus }}>
                               <div className={`text-sm ${getStatusColor(order.containers?.[0]?.status as ContainerStatus)}`}>
                                 {getStatusLabel(order.containers?.[0]?.status as ContainerStatus)}
                                 {order.containers && order.containers.length > 1 && (
@@ -1087,7 +1191,7 @@ const AdminLogistics = () => {
                                 )}
                              </div>
                            </TableCell>
-                           <TableCell>
+                           <TableCell style={{ width: columnWidths.shipmentStatus, minWidth: columnWidths.shipmentStatus }}>
                              <SmartShipmentStatus
                                orderId={order.id}
                                fallbackStatus={(order.shipment_status as ShipmentStatus) || 'not_shipped'}
@@ -1095,7 +1199,7 @@ const AdminLogistics = () => {
                                onStatusChange={(status) => handleUpdateShipmentStatus(order.id, status)}
                              />
                            </TableCell>
-                           <TableCell>
+                           <TableCell style={{ width: columnWidths.actions, minWidth: columnWidths.actions }}>
                              <div className="flex items-center gap-1">
                                <Button
                                  variant="ghost"
