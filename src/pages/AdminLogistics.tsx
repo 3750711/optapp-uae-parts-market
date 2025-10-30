@@ -104,6 +104,7 @@ const AdminLogistics = () => {
     placeNumber: 45,
     deliveryPrice: 90,
     orderStatus: 110,
+    readyForShipment: 50,
     containerNumber: 65,
     containerStatus: 55,
     shipmentStatus: 95,
@@ -529,6 +530,32 @@ const AdminLogistics = () => {
     setUpdatingOrderId(null);
   };
 
+  const handleToggleReadyForShipment = async (orderId: string, currentValue: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ ready_for_shipment: !currentValue })
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      // Invalidate queries to refresh
+      queryClient.invalidateQueries({ queryKey: ['logistics-orders-filtered'] });
+      
+      toast({
+        title: "Успешно",
+        description: `Статус готовности ${!currentValue ? 'установлен' : 'снят'}`,
+      });
+    } catch (error) {
+      console.error('Error updating ready_for_shipment:', error);
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось обновить статус готовности",
+      });
+    }
+  };
+
   const handleExportToXLSX = async () => {
     if (selectedOrders.length === 0) {
       toast({
@@ -911,6 +938,7 @@ const AdminLogistics = () => {
                 getStatusLabel={getStatusLabel}
                 shipmentSummaries={shipmentSummaries}
                 onUpdateShipmentStatus={handleUpdateShipmentStatus}
+                onToggleReadyForShipment={handleToggleReadyForShipment}
                 getCompactOrderInfo={getCompactOrderInfo}
                 columnWidths={columnWidths}
                 onResizeColumn={handleResize}
@@ -1025,6 +1053,14 @@ const AdminLogistics = () => {
                         Статус заказа
                       </ResizableTableHead>
                       <ResizableTableHead 
+                        columnId="readyForShipment"
+                        width={columnWidths.readyForShipment}
+                        minWidth={50}
+                        onResize={handleResize}
+                      >
+                        Готов
+                      </ResizableTableHead>
+                      <ResizableTableHead 
                         columnId="containerNumber"
                         width={columnWidths.containerNumber}
                         minWidth={10}
@@ -1113,6 +1149,14 @@ const AdminLogistics = () => {
                           </TableCell>
                           <TableCell style={{ width: columnWidths.orderStatus, minWidth: columnWidths.orderStatus }}>
                             <OrderStatusBadge status={order.status as any} />
+                          </TableCell>
+                          <TableCell style={{ width: columnWidths.readyForShipment, minWidth: columnWidths.readyForShipment }}>
+                            <div className="flex items-center justify-center">
+                              <Checkbox
+                                checked={order.ready_for_shipment || false}
+                                onCheckedChange={() => handleToggleReadyForShipment(order.id, order.ready_for_shipment || false)}
+                              />
+                            </div>
                           </TableCell>
                           <TableCell style={{ width: columnWidths.containerNumber, minWidth: columnWidths.containerNumber }}>
                              {editingContainer === order.id ? (

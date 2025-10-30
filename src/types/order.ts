@@ -79,6 +79,7 @@ export interface CreatedOrder {
   video_url?: string[];
   order_created_type: OrderCreatedType;
   shipment_status: ShipmentStatus;
+  ready_for_shipment?: boolean; // Флаг готовности к отправке
 }
 
 export interface ValidationError {

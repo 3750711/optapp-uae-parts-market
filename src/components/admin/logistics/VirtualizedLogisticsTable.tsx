@@ -37,6 +37,7 @@ interface VirtualizedLogisticsTableProps {
   getStatusLabel: (status: ContainerStatus | null) => string;
   shipmentSummaries: Map<string, any> | undefined;
   onUpdateShipmentStatus: (orderId: string, status: ShipmentStatus) => void;
+  onToggleReadyForShipment: (orderId: string, currentValue: boolean) => void;
   getCompactOrderInfo: (order: Order) => { buyerInfo: string; sellerInfo: string };
   columnWidths: Record<string, number>;
   onResizeColumn: (columnId: string, width: number) => void;
@@ -58,6 +59,7 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
   getStatusLabel,
   shipmentSummaries,
   onUpdateShipmentStatus,
+  onToggleReadyForShipment,
   getCompactOrderInfo,
   columnWidths,
   onResizeColumn,
@@ -183,6 +185,17 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
           style={{ width: columnWidths.orderStatus, minWidth: columnWidths.orderStatus }}
         >
           <OrderStatusBadge status={order.status as any} />
+        </div>
+
+        {/* Ready for Shipment */}
+        <div 
+          className="flex items-center justify-center px-4 text-sm flex-shrink-0"
+          style={{ width: columnWidths.readyForShipment, minWidth: columnWidths.readyForShipment }}
+        >
+          <Checkbox
+            checked={order.ready_for_shipment || false}
+            onCheckedChange={() => onToggleReadyForShipment(order.id, order.ready_for_shipment || false)}
+          />
         </div>
 
         {/* Container Number */}
@@ -370,6 +383,15 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
                 className="border-0"
               >
                 Статус заказа
+              </ResizableTableHead>
+              <ResizableTableHead
+                columnId="readyForShipment"
+                width={columnWidths.readyForShipment}
+                minWidth={50}
+                onResize={onResizeColumn}
+                className="border-0"
+              >
+                Готов
               </ResizableTableHead>
               <ResizableTableHead
                 columnId="containerNumber"

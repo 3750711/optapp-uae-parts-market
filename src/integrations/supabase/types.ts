@@ -1019,6 +1019,7 @@ export type Database = {
           price: number
           product_id: string | null
           quantity: number
+          ready_for_shipment: boolean
           seller_id: string
           seller_opt_id: string | null
           shipment_status: Database["public"]["Enums"]["shipment_status"] | null
@@ -1052,6 +1053,7 @@ export type Database = {
           price: number
           product_id?: string | null
           quantity?: number
+          ready_for_shipment?: boolean
           seller_id: string
           seller_opt_id?: string | null
           shipment_status?:
@@ -1087,6 +1089,7 @@ export type Database = {
           price?: number
           product_id?: string | null
           quantity?: number
+          ready_for_shipment?: boolean
           seller_id?: string
           seller_opt_id?: string | null
           shipment_status?:
