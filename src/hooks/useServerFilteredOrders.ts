@@ -64,25 +64,34 @@ export const useServerFilteredOrders = (
 
       // === 2. SEARCH TERM (по 5 полям + цена/номер заказа) ===
       if (appliedFilters.searchTerm.trim()) {
-        const term = appliedFilters.searchTerm.trim();
+        // Убираем случайный минус в начале строки
+        const term = appliedFilters.searchTerm.trim().replace(/^-+/, '');
+        
+        // Если после очистки строка пустая - пропускаем поиск
+        if (!term) {
+          console.log('⚠️ [Search] Empty term after cleanup, skipping');
+          return { orders: [], totalCount: 0 };
+        }
+        
         const isNumeric = /^\d+(\.\d+)?$/.test(term);
         
         console.log('🔎 [Search Query]', {
-          term,
+          originalTerm: appliedFilters.searchTerm.trim(),
+          cleanedTerm: term,
           isNumeric,
           willUseExactMatch: isNumeric
         });
         
         if (isNumeric) {
           if (term.includes('.')) {
-            // Дробное число - ищем точное совпадение по цене и стоимости доставки
+            // Дробное число - точное совпадение по цене и стоимости доставки
             console.log('✅ [Search] Exact match for price/delivery:', term);
             query = query.or(`price.eq.${parseFloat(term)},delivery_price_confirm.eq.${parseFloat(term)}`.replace(/\s+/g, ''));
           } else {
-            // Целое число - ищем диапазон по цене/доставке + точный номер заказа
-            console.log('✅ [Search] Range match for number:', term);
+            // Целое число - точное совпадение для всех числовых полей
+            console.log('✅ [Search] Exact match for order/price/delivery:', term);
             const num = parseFloat(term);
-            query = query.or(`order_number.eq.${parseInt(term)},price.gte.${num},price.lt.${num + 1},delivery_price_confirm.gte.${num},delivery_price_confirm.lt.${num + 1}`.replace(/\s+/g, ''));
+            query = query.or(`order_number.eq.${parseInt(term)},price.eq.${num},delivery_price_confirm.eq.${num}`.replace(/\s+/g, ''));
           }
         } else {
           // Полнотекстовый поиск по текстовым полям
