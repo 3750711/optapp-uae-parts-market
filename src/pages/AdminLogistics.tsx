@@ -96,18 +96,18 @@ const AdminLogistics = () => {
   // Resizable columns (минимальные ширины для opt_id и сокращенных статусов)
   const DEFAULT_COLUMN_WIDTHS = {
     checkbox: 40,
-    orderNumber: 100,
-    seller: 60,
-    buyer: 60,
-    title: 250,
-    price: 100,
-    placeNumber: 50,
-    deliveryPrice: 100,
-    orderStatus: 120,
-    containerNumber: 70,
-    containerStatus: 60,
-    shipmentStatus: 100,
-    actions: 100,
+    orderNumber: 90,
+    seller: 55,
+    buyer: 55,
+    title: 230,
+    price: 90,
+    placeNumber: 45,
+    deliveryPrice: 90,
+    orderStatus: 110,
+    containerNumber: 65,
+    containerStatus: 55,
+    shipmentStatus: 95,
+    actions: 95,
   };
 
   const { columnWidths, handleResize, resetWidths } = useResizableColumns(
@@ -778,7 +778,7 @@ const AdminLogistics = () => {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto py-4">
+      <div className="w-full px-2 py-4 mx-auto max-w-[99%]">
         <Card>
           <CardHeader className="py-4 flex flex-row justify-between items-center">
             <CardTitle>Управление логистикой</CardTitle>
@@ -963,7 +963,7 @@ const AdminLogistics = () => {
                 onResizeColumn={handleResize}
               />
             ) : (
-              <div className="rounded-md border overflow-x-auto">
+              <div className="rounded-md border overflow-x-auto -mx-2">
                 <Table>
                   <TableHeader>
                     <TableRow>

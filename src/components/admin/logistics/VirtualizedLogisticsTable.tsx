@@ -275,7 +275,7 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
   }
 
   return (
-    <div className="rounded-md border">
+    <div className="rounded-md border -mx-2">
       {/* Table Header */}
       <div className="overflow-hidden">
         <table className="w-full">
