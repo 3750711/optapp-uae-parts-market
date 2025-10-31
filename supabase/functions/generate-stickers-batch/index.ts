@@ -59,7 +59,6 @@ Deno.serve(async (req) => {
         title,
         brand,
         model,
-        year,
         quantity,
         created_at,
         sender_code,
@@ -96,7 +95,7 @@ Deno.serve(async (req) => {
       if (order.title) {
         productLines.push(order.title);
       }
-      const carInfo = [order.brand, order.model, order.year].filter(Boolean).join(' ');
+      const carInfo = [order.brand, order.model].filter(Boolean).join(' ');
       if (carInfo) {
         productLines.push(`${order.quantity || 1}шт ${carInfo}`);
       }
