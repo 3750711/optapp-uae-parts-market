@@ -932,6 +932,7 @@ const AdminLogistics = () => {
                 orders={orders}
                 selectedOrders={selectedOrders}
                 onSelectOrder={handleSelectOrder}
+                onSelectAll={handleSelectAll}
                 onViewDetails={handleViewDetails}
                 onManagePlaces={setManagingPlacesOrderId}
                 editingContainer={editingContainer}

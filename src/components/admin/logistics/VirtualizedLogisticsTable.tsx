@@ -25,6 +25,7 @@ interface VirtualizedLogisticsTableProps {
   orders: Order[];
   selectedOrders: string[];
   onSelectOrder: (orderId: string) => void;
+  onSelectAll: () => void;
   onViewDetails: (orderId: string) => void;
   onManagePlaces: (orderId: string) => void;
   editingContainer: string | null;
@@ -47,6 +48,7 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
   orders,
   selectedOrders,
   onSelectOrder,
+  onSelectAll,
   onViewDetails,
   onManagePlaces,
   editingContainer,
@@ -66,6 +68,9 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
 }) => {
   const ROW_HEIGHT = 80;
   const CONTAINER_HEIGHT = Math.min(600, window.innerHeight - 400);
+  
+  const isAllSelected = orders.length > 0 && selectedOrders.length === orders.length;
+  const isSomeSelected = selectedOrders.length > 0 && selectedOrders.length < orders.length;
 
   const Row = memo(({ index, style }: { index: number; style: React.CSSProperties }) => {
     const order = orders[index];
@@ -301,7 +306,11 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
                 onResize={onResizeColumn}
                 className="border-0"
               >
-                <span></span>
+                <Checkbox
+                  checked={isAllSelected}
+                  indeterminate={isSomeSelected}
+                  onCheckedChange={onSelectAll}
+                />
               </ResizableTableHead>
               <ResizableTableHead
                 columnId="actions"
