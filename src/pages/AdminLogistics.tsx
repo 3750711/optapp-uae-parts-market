@@ -145,7 +145,8 @@ const AdminLogistics = () => {
     handleClearSearch,
     handleClearFilters,
     handleRemoveFilter,
-    handleSortChange
+    handleSortChange,
+    updateSettings
   } = useAdminLogisticsState();
 
   // Wrap handleApplyFilters to also clear selection
@@ -190,6 +191,14 @@ const AdminLogistics = () => {
       appliedSearchTerm: appliedFilters.searchTerm
     });
   }, [data, appliedFilters.searchTerm, orders.length, totalCount]);
+
+  // Save loaded pages count to localStorage
+  useEffect(() => {
+    if (data?.pages.length) {
+      updateSettings({ loadedPagesCount: data.pages.length });
+      console.log('💾 [Pages] Saved pages count to localStorage:', data.pages.length);
+    }
+  }, [data?.pages.length, updateSettings]);
 
 
   // Debug: track hasNextPage changes
