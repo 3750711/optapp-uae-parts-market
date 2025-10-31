@@ -38,6 +38,9 @@ export function PrintStickersButton({
         body: { 
           orderIds: selectedOrderIds 
         },
+        options: {
+          headers: { 'x-timeout': '120000' }
+        }
       });
 
       if (error) {
@@ -66,7 +69,7 @@ export function PrintStickersButton({
             {data.sticker_numbers.length > 5 && '...'}
           </div>
         </div>,
-        { duration: 5000 }
+        { duration: 10000 }
       );
 
       // Call success callback (to clear selection)
@@ -92,7 +95,12 @@ export function PrintStickersButton({
       {isGenerating ? (
         <>
           <Loader2 className="h-4 w-4 animate-spin" />
-          Генерация...
+          <div className="flex flex-col items-start gap-0.5">
+            <span>Генерация {selectedOrderIds.length} заказов...</span>
+            <span className="text-xs opacity-75">
+              ~{Math.ceil(selectedOrderIds.length * 0.2)} сек
+            </span>
+          </div>
         </>
       ) : (
         <>

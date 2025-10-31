@@ -934,6 +934,8 @@ export type Database = {
           order_id: string
           place_number: number
           shipment_status: Database["public"]["Enums"]["shipment_status_individual"]
+          sticker_generated_at: string | null
+          sticker_pdf_url: string | null
           updated_at: string
         }
         Insert: {
@@ -944,6 +946,8 @@ export type Database = {
           order_id: string
           place_number: number
           shipment_status?: Database["public"]["Enums"]["shipment_status_individual"]
+          sticker_generated_at?: string | null
+          sticker_pdf_url?: string | null
           updated_at?: string
         }
         Update: {
@@ -954,6 +958,8 @@ export type Database = {
           order_id?: string
           place_number?: number
           shipment_status?: Database["public"]["Enums"]["shipment_status_individual"]
+          sticker_generated_at?: string | null
+          sticker_pdf_url?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -2975,6 +2981,10 @@ export type Database = {
           order_id: string
           status: string
         }[]
+      }
+      batch_update_stickers: {
+        Args: { order_ids: string[]; sticker_pdf: string }
+        Returns: Json
       }
       calculate_content_hash: { Args: { content: string }; Returns: string }
       calculate_order_shipment_status: {

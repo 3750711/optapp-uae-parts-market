@@ -50,26 +50,26 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch orders with seller info and shipments
+    // Fetch orders without JOIN (используем напрямую seller_opt_id и buyer_opt_id)
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
       .select(`
-        *,
-        seller:profiles!orders_seller_id_fkey(
-          full_name,
-          company_name,
-          opt_id
-        ),
-        buyer:profiles!orders_buyer_id_fkey(
-          full_name,
-          company_name,
-          opt_id
-        ),
+        id,
+        order_number,
+        title,
+        brand,
+        model,
+        year,
+        quantity,
+        created_at,
+        sender_code,
+        seller_opt_id,
+        buyer_opt_id,
+        place_number,
         order_shipments(
           id,
           place_number,
-          container_number,
-          shipment_status
+          container_number
         )
       `)
       .in('id', orderIds)
@@ -86,24 +86,10 @@ Deno.serve(async (req) => {
 
     console.log('✅ [generate-stickers-batch] Fetched', orders.length, 'orders');
 
-    // Get the last sticker number to continue numbering
-    const { data: lastSticker } = await supabase
-      .from('orders')
-      .select('sticker_number')
-      .not('sticker_number', 'is', null)
-      .order('sticker_number', { ascending: false })
-      .limit(1);
-
-    const nextStickerNumber = (lastSticker?.[0]?.sticker_number || 0) + 1;
-
-    console.log('🔢 [generate-stickers-batch] Next sticker number:', nextStickerNumber);
-
     // Prepare data for CraftMyPDF template
     const items = [];
-    let currentStickerNum = nextStickerNumber;
 
     orders.forEach((order) => {
-      const senderName = order.seller?.company_name || order.seller?.full_name || 'PartsBay';
       
       // Construct product info
       const productLines = [];
@@ -121,19 +107,15 @@ Deno.serve(async (req) => {
           const qrCode = `${order.order_number}-${shipment.place_number}-${order.created_at}`;
           
           items.push({
-            sticker_header: `Стикер ${currentStickerNum}`,
             sender_code: order.sender_code || 'SIN',
-            receiver_code: order.buyer?.opt_id || order.buyer_opt_id || '',
+            receiver_code: order.buyer_opt_id || '',
             order_number: String(order.order_number),
             qr_code: qrCode,
             product_line1: productLines[0] || 'Товар',
             product_line2: productLines[1] || `${order.quantity || 1}шт`,
             quantity_text: `Место: ${shipment.place_number}/${order.order_shipments.length}`,
-            sender_text: `Отправитель: ${order.seller?.opt_id || order.seller_opt_id || 'N/A'}`,
-            bottom_sticker: qrCode,
+            sender_text: `Отправитель: ${order.seller_opt_id || 'N/A'}`,
           });
-          
-          currentStickerNum++;
         });
       } else {
         // Если нет order_shipments, генерируем стикеры по order.place_number
@@ -142,33 +124,20 @@ Deno.serve(async (req) => {
           const qrCode = `${order.order_number}-${placeNum}-${order.created_at}`;
           
           items.push({
-            sticker_header: `Стикер ${currentStickerNum}`,
             sender_code: order.sender_code || 'SIN',
-            receiver_code: order.buyer?.opt_id || order.buyer_opt_id || '',
+            receiver_code: order.buyer_opt_id || '',
             order_number: String(order.order_number),
             qr_code: qrCode,
             product_line1: productLines[0] || 'Товар',
             product_line2: productLines[1] || `${order.quantity || 1}шт`,
             quantity_text: `Место: ${placeNum}/${totalPlaces}`,
-            sender_text: `Отправитель: ${order.seller?.opt_id || order.seller_opt_id || 'N/A'}`,
-            bottom_sticker: qrCode,
+            sender_text: `Отправитель: ${order.seller_opt_id || 'N/A'}`,
           });
-          
-          currentStickerNum++;
         }
       }
     });
 
-    console.log('📦 [generate-stickers-batch] Generated', items.length, 'stickers for', orders.length, 'orders');
-    console.log('📤 [generate-stickers-batch] Sample QR codes:', items.slice(0, 3).map(i => i.qr_code));
-
-    // Log sample data structure for debugging
-    console.log('📤 [generate-stickers-batch] Sample data structure:', JSON.stringify({
-      company: {
-        name: 'PartsBay',
-        items: items.slice(0, 2)
-      }
-    }, null, 2));
+    console.log(`📦 [generate-stickers-batch] Generated ${items.length} stickers for ${orders.length} orders`);
 
     // Get CraftMyPDF credentials
     const craftMyPdfApiKey = Deno.env.get('CRAFTMYPDF_API_KEY');
@@ -209,47 +178,21 @@ Deno.serve(async (req) => {
     const result = await pdfResponse.json();
     console.log('✅ [generate-stickers-batch] PDF generated:', result.file);
 
-    // Update orders and shipments in database
-    let stickerIndex = 0;
-    for (const order of orders) {
-      // Обновляем основной заказ
-      const { error: orderError } = await supabase
-        .from('orders')
-        .update({
-          sticker_number: nextStickerNumber + stickerIndex,
-          sticker_generated_at: new Date().toISOString(),
-          sticker_pdf_url: result.file,
-        })
-        .eq('id', order.id);
+    // Batch-обновление через одну SQL-функцию
+    const { data: batchResult, error: batchError } = await supabase.rpc('batch_update_stickers', {
+      order_ids: orderIds,
+      sticker_pdf: result.file
+    });
 
-      if (orderError) {
-        console.error('⚠️ [generate-stickers-batch] Failed to update order', order.id, orderError);
-      }
-
-      // Обновляем каждый shipment
-      if (order.order_shipments && order.order_shipments.length > 0) {
-        for (const shipment of order.order_shipments) {
-          const { error: shipmentError } = await supabase
-            .from('order_shipments')
-            .update({
-              sticker_generated_at: new Date().toISOString(),
-              sticker_pdf_url: result.file,
-            })
-            .eq('id', shipment.id);
-
-          if (shipmentError) {
-            console.error('⚠️ [generate-stickers-batch] Failed to update shipment', shipment.id, shipmentError);
-          }
-          
-          stickerIndex++;
-        }
-      } else {
-        // Если нет shipments, считаем по place_number
-        stickerIndex += order.place_number || 1;
-      }
+    if (batchError) {
+      console.error('⚠️ [generate-stickers-batch] Batch update failed:', batchError);
+      throw new Error('Failed to update database');
     }
 
-    console.log('✅ [generate-stickers-batch] Database updated successfully');
+    console.log('✅ [generate-stickers-batch] Database updated in single transaction');
+
+    const nextStickerNumber = batchResult.next_sticker_number;
+    const totalStickers = batchResult.total_stickers;
 
     // Return success response
     return new Response(

@@ -74,9 +74,11 @@ export const supabaseFetch = async (url: RequestInfo | URL, options?: RequestIni
   let lastError: Error;
   
   // Helper function to create fetch with timeout and individual controller
-  const createFetchWithTimeout = (fetchUrl: RequestInfo | URL, timeout: number = 25000) => {
+  const createFetchWithTimeout = (fetchUrl: RequestInfo | URL, timeout?: number) => {
+    // Увеличенный timeout для Edge Functions (2 минуты), стандартный для остальных
+    const timeoutMs = timeout || (fetchUrl.toString().includes('/functions/v1/') ? 120000 : 25000);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     
     const fetchPromise = fetch(fetchUrl, {
       ...baseFetchOptions,
