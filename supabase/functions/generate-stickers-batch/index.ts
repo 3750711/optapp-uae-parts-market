@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch orders with seller info
+    // Fetch orders with seller info and shipments
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
       .select(`
@@ -59,6 +59,12 @@ Deno.serve(async (req) => {
           full_name,
           company_name,
           opt_id
+        ),
+        order_shipments(
+          id,
+          place_number,
+          container_number,
+          shipment_status
         )
       `)
       .in('id', orderIds)
@@ -88,46 +94,72 @@ Deno.serve(async (req) => {
     console.log('🔢 [generate-stickers-batch] Next sticker number:', nextStickerNumber);
 
     // Prepare data for CraftMyPDF template
-    const items = orders.map((order, index) => {
-      const stickerNum = nextStickerNumber + index;
+    const items = [];
+    let currentStickerNum = nextStickerNumber;
+
+    orders.forEach((order) => {
+      const senderName = order.seller?.company_name || order.seller?.full_name || 'PartsBay';
       
       // Construct product info
       const productLines = [];
-      
       if (order.title) {
         productLines.push(order.title);
       }
-      
-      const carInfo = [order.brand, order.model, order.year]
-        .filter(Boolean)
-        .join(' ');
-      
+      const carInfo = [order.brand, order.model, order.year].filter(Boolean).join(' ');
       if (carInfo) {
         productLines.push(`${order.quantity || 1}шт ${carInfo}`);
       }
 
-      const senderName = order.seller?.company_name || order.seller?.full_name || 'PartsBay';
-
-      return {
-        sticker_header: `Стикер ${stickerNum}`,
-        sender_code: order.sender_code || 'SIN',
-        order_number: String(order.order_number || stickerNum),
-        qr_code: `https://partsbay.ae/order/${order.order_number || order.id}`,
-        product_line1: productLines[0] || 'Товар',
-        product_line2: productLines[1] || `${order.quantity || 1}шт`,
-        quantity_text: `Кол. мест: ${order.quantity || 1}`,
-        sender_text: `Отправитель: ${senderName}`,
-        bottom_sticker: `Стикер ${stickerNum}`,
-      };
+      // Генерируем стикер для каждого места из order_shipments
+      if (order.order_shipments && order.order_shipments.length > 0) {
+        order.order_shipments.forEach((shipment) => {
+          const qrCode = `${order.order_number}-${shipment.place_number}-${order.created_at}`;
+          
+          items.push({
+            sticker_header: `Стикер ${currentStickerNum}`,
+            sender_code: order.sender_code || 'SIN',
+            order_number: String(order.order_number),
+            qr_code: qrCode,
+            product_line1: productLines[0] || 'Товар',
+            product_line2: productLines[1] || `${order.quantity || 1}шт`,
+            quantity_text: `Место: ${shipment.place_number}/${order.order_shipments.length}`,
+            sender_text: `Отправитель: ${senderName}`,
+            bottom_sticker: qrCode,
+          });
+          
+          currentStickerNum++;
+        });
+      } else {
+        // Если нет order_shipments, генерируем стикеры по order.place_number
+        const totalPlaces = order.place_number || 1;
+        for (let placeNum = 1; placeNum <= totalPlaces; placeNum++) {
+          const qrCode = `${order.order_number}-${placeNum}-${order.created_at}`;
+          
+          items.push({
+            sticker_header: `Стикер ${currentStickerNum}`,
+            sender_code: order.sender_code || 'SIN',
+            order_number: String(order.order_number),
+            qr_code: qrCode,
+            product_line1: productLines[0] || 'Товар',
+            product_line2: productLines[1] || `${order.quantity || 1}шт`,
+            quantity_text: `Место: ${placeNum}/${totalPlaces}`,
+            sender_text: `Отправитель: ${senderName}`,
+            bottom_sticker: qrCode,
+          });
+          
+          currentStickerNum++;
+        }
+      }
     });
 
-    console.log('📦 [generate-stickers-batch] Prepared', items.length, 'sticker items');
+    console.log('📦 [generate-stickers-batch] Generated', items.length, 'stickers for', orders.length, 'orders');
+    console.log('📤 [generate-stickers-batch] Sample QR codes:', items.slice(0, 3).map(i => i.qr_code));
 
-    // Log first item structure for debugging
+    // Log sample data structure for debugging
     console.log('📤 [generate-stickers-batch] Sample data structure:', JSON.stringify({
       company: {
         name: 'PartsBay',
-        items: items.slice(0, 1)
+        items: items.slice(0, 2)
       }
     }, null, 2));
 
@@ -170,26 +202,43 @@ Deno.serve(async (req) => {
     const result = await pdfResponse.json();
     console.log('✅ [generate-stickers-batch] PDF generated:', result.file);
 
-    // Update orders in database with sticker info
-    const updates = orders.map((order, index) => ({
-      id: order.id,
-      sticker_number: nextStickerNumber + index,
-      sticker_generated_at: new Date().toISOString(),
-      sticker_pdf_url: result.file,
-    }));
-
-    for (const update of updates) {
-      const { error: updateError } = await supabase
+    // Update orders and shipments in database
+    let stickerIndex = 0;
+    for (const order of orders) {
+      // Обновляем основной заказ
+      const { error: orderError } = await supabase
         .from('orders')
         .update({
-          sticker_number: update.sticker_number,
-          sticker_generated_at: update.sticker_generated_at,
-          sticker_pdf_url: update.sticker_pdf_url,
+          sticker_number: nextStickerNumber + stickerIndex,
+          sticker_generated_at: new Date().toISOString(),
+          sticker_pdf_url: result.file,
         })
-        .eq('id', update.id);
+        .eq('id', order.id);
 
-      if (updateError) {
-        console.error('⚠️ [generate-stickers-batch] Failed to update order', update.id, updateError);
+      if (orderError) {
+        console.error('⚠️ [generate-stickers-batch] Failed to update order', order.id, orderError);
+      }
+
+      // Обновляем каждый shipment
+      if (order.order_shipments && order.order_shipments.length > 0) {
+        for (const shipment of order.order_shipments) {
+          const { error: shipmentError } = await supabase
+            .from('order_shipments')
+            .update({
+              sticker_generated_at: new Date().toISOString(),
+              sticker_pdf_url: result.file,
+            })
+            .eq('id', shipment.id);
+
+          if (shipmentError) {
+            console.error('⚠️ [generate-stickers-batch] Failed to update shipment', shipment.id, shipmentError);
+          }
+          
+          stickerIndex++;
+        }
+      } else {
+        // Если нет shipments, считаем по place_number
+        stickerIndex += order.place_number || 1;
       }
     }
 
@@ -200,8 +249,9 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         pdf_url: result.file,
-        total_stickers: orders.length,
-        sticker_numbers: orders.map((_, index) => nextStickerNumber + index),
+        total_orders: orders.length,
+        total_stickers: items.length,
+        sticker_numbers: Array.from({ length: items.length }, (_, i) => nextStickerNumber + i),
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
