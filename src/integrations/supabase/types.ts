@@ -1022,8 +1022,12 @@ export type Database = {
           ready_for_shipment: boolean
           seller_id: string
           seller_opt_id: string | null
+          sender_code: string | null
           shipment_status: Database["public"]["Enums"]["shipment_status"] | null
           status: Database["public"]["Enums"]["order_status"]
+          sticker_generated_at: string | null
+          sticker_number: number | null
+          sticker_pdf_url: string | null
           telegram_url_buyer: string | null
           telegram_url_order: string | null
           text_order: string | null
@@ -1056,10 +1060,14 @@ export type Database = {
           ready_for_shipment?: boolean
           seller_id: string
           seller_opt_id?: string | null
+          sender_code?: string | null
           shipment_status?:
             | Database["public"]["Enums"]["shipment_status"]
             | null
           status?: Database["public"]["Enums"]["order_status"]
+          sticker_generated_at?: string | null
+          sticker_number?: number | null
+          sticker_pdf_url?: string | null
           telegram_url_buyer?: string | null
           telegram_url_order?: string | null
           text_order?: string | null
@@ -1092,10 +1100,14 @@ export type Database = {
           ready_for_shipment?: boolean
           seller_id?: string
           seller_opt_id?: string | null
+          sender_code?: string | null
           shipment_status?:
             | Database["public"]["Enums"]["shipment_status"]
             | null
           status?: Database["public"]["Enums"]["order_status"]
+          sticker_generated_at?: string | null
+          sticker_number?: number | null
+          sticker_pdf_url?: string | null
           telegram_url_buyer?: string | null
           telegram_url_order?: string | null
           text_order?: string | null
