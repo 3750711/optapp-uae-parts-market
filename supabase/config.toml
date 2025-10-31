@@ -165,6 +165,9 @@ verify_jwt = false
 [functions.test-qstash-queue]
 verify_jwt = false
 
+[functions.generate-stickers-batch]
+verify_jwt = true
+
 [analytics]
 enabled = false
 port = 54327

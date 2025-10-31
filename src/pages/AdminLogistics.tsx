@@ -67,6 +67,7 @@ import { useServerFilteredOrders, Order } from "@/hooks/useServerFilteredOrders"
 import { useOrdersStatistics } from "@/hooks/useOrdersStatistics";
 import { useQuery } from "@tanstack/react-query";
 import { VirtualizedLogisticsTable } from "@/components/admin/logistics/VirtualizedLogisticsTable";
+import { PrintStickersButton } from "@/components/admin/sticker/PrintStickersButton";
 
 type ContainerStatus = 'waiting' | 'sent_from_uae' | 'transit_iran' | 'to_kazakhstan' | 'customs' | 'cleared_customs' | 'received';
 type ShipmentStatus = 'not_shipped' | 'partially_shipped' | 'in_transit';
@@ -841,6 +842,13 @@ const AdminLogistics = () => {
                       <FileText className="h-4 w-4 mr-2" />
                       Экспорт в Excel
                     </Button>
+                    <PrintStickersButton
+                      selectedOrderIds={selectedOrders}
+                      onSuccess={() => {
+                        setSelectedOrders([]);
+                        queryClient.invalidateQueries({ queryKey: ['logistics-orders-filtered'] });
+                      }}
+                    />
                     <Button
                       variant="ghost"
                       onClick={resetWidths}
