@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useLocalStorageSettings } from "@/hooks/useLocalStorageSettings";
 import { LogisticsFilters } from "@/types/logisticsFilters";
 import { Order } from "@/hooks/useServerFilteredOrders";
@@ -49,6 +49,23 @@ export const useAdminLogisticsState = () => {
   const [sortConfig, setSortConfig] = useState<SortConfig>(
     settings.sortConfig
   );
+
+  // Sync filters with settings from localStorage
+  useEffect(() => {
+    if (JSON.stringify(settings.appliedFilters) !== JSON.stringify(appliedFilters)) {
+      console.log('🔄 [Filters Sync] Restoring filters from localStorage:', settings.appliedFilters);
+      setPendingFilters(settings.appliedFilters);
+      setAppliedFilters(settings.appliedFilters);
+    }
+  }, [settings.appliedFilters]);
+
+  // Sync sort config with settings from localStorage
+  useEffect(() => {
+    if (JSON.stringify(settings.sortConfig) !== JSON.stringify(sortConfig)) {
+      console.log('🔄 [Sort Sync] Restoring sort config from localStorage:', settings.sortConfig);
+      setSortConfig(settings.sortConfig);
+    }
+  }, [settings.sortConfig]);
 
   // Apply filters and save to localStorage
   const handleApplyFilters = useCallback(() => {
