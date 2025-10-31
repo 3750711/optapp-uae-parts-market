@@ -11,6 +11,7 @@ type SortConfig = {
 interface LogisticsSettings {
   appliedFilters: LogisticsFilters;
   sortConfig: SortConfig;
+  loadedPagesCount: number;
 }
 
 const defaultSettings: LogisticsSettings = {
@@ -27,7 +28,8 @@ const defaultSettings: LogisticsSettings = {
   sortConfig: {
     field: null,
     direction: null
-  }
+  },
+  loadedPagesCount: 1
 };
 
 export const useAdminLogisticsState = () => {
@@ -126,6 +128,7 @@ export const useAdminLogisticsState = () => {
     handleClearSearch,
     handleClearFilters,
     handleRemoveFilter,
-    handleSortChange
+    handleSortChange,
+    updateSettings
   };
 };
