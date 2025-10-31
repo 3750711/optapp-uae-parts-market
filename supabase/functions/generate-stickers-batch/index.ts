@@ -60,6 +60,11 @@ Deno.serve(async (req) => {
           company_name,
           opt_id
         ),
+        buyer:profiles!orders_buyer_id_fkey(
+          full_name,
+          company_name,
+          opt_id
+        ),
         order_shipments(
           id,
           place_number,
@@ -118,12 +123,13 @@ Deno.serve(async (req) => {
           items.push({
             sticker_header: `Стикер ${currentStickerNum}`,
             sender_code: order.sender_code || 'SIN',
+            receiver_code: order.buyer?.opt_id || order.buyer_opt_id || '',
             order_number: String(order.order_number),
             qr_code: qrCode,
             product_line1: productLines[0] || 'Товар',
             product_line2: productLines[1] || `${order.quantity || 1}шт`,
             quantity_text: `Место: ${shipment.place_number}/${order.order_shipments.length}`,
-            sender_text: `Отправитель: ${senderName}`,
+            sender_text: `Отправитель: ${order.seller?.opt_id || order.seller_opt_id || 'N/A'}`,
             bottom_sticker: qrCode,
           });
           
@@ -138,12 +144,13 @@ Deno.serve(async (req) => {
           items.push({
             sticker_header: `Стикер ${currentStickerNum}`,
             sender_code: order.sender_code || 'SIN',
+            receiver_code: order.buyer?.opt_id || order.buyer_opt_id || '',
             order_number: String(order.order_number),
             qr_code: qrCode,
             product_line1: productLines[0] || 'Товар',
             product_line2: productLines[1] || `${order.quantity || 1}шт`,
             quantity_text: `Место: ${placeNum}/${totalPlaces}`,
-            sender_text: `Отправитель: ${senderName}`,
+            sender_text: `Отправитель: ${order.seller?.opt_id || order.seller_opt_id || 'N/A'}`,
             bottom_sticker: qrCode,
           });
           
