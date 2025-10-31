@@ -204,6 +204,7 @@ const AdminLogistics = () => {
   // Restore saved pages count on component mount
   const isInitialMount = useRef(true);
   const isRestoringPages = useRef(false);
+  const [restoringProgress, setRestoringProgress] = useState<{ current: number; total: number } | null>(null);
   
   useEffect(() => {
     if (isInitialMount.current && !isLoading && !isRestoringPages.current) {
@@ -224,6 +225,7 @@ const AdminLogistics = () => {
         isRestoringPages.current = true;
         const pagesToLoad = savedPagesCount - currentPagesCount;
         
+        setRestoringProgress({ current: 0, total: pagesToLoad });
         console.log(`📥 [Restore] Loading ${pagesToLoad} pages...`);
         
         // Load pages sequentially with small delays
@@ -232,18 +234,23 @@ const AdminLogistics = () => {
           if (loadedPages < pagesToLoad && hasNextPage) {
             fetchNextPage().then(() => {
               loadedPages++;
+              setRestoringProgress({ current: loadedPages, total: pagesToLoad });
+              
               if (loadedPages < pagesToLoad) {
                 setTimeout(loadNextPage, 150);
               } else {
                 isRestoringPages.current = false;
+                setRestoringProgress(null);
                 console.log('✅ [Restore] Pages restoration complete');
               }
             }).catch((error) => {
               console.error('❌ [Restore] Error loading page:', error);
               isRestoringPages.current = false;
+              setRestoringProgress(null);
             });
           } else {
             isRestoringPages.current = false;
+            setRestoringProgress(null);
           }
         };
         
@@ -818,6 +825,26 @@ const AdminLogistics = () => {
 
   return (
     <AdminLayout>
+      {restoringProgress && (
+        <div className="fixed top-4 right-4 z-50 bg-background border border-border rounded-lg shadow-lg p-4 min-w-[280px]">
+          <div className="flex items-center gap-3">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <div className="flex-1">
+              <p className="text-sm font-medium">Восстановление страниц</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {restoringProgress.current} из {restoringProgress.total}
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 w-full bg-secondary rounded-full h-2">
+            <div 
+              className="bg-primary h-2 rounded-full transition-all duration-300"
+              style={{ width: `${(restoringProgress.current / restoringProgress.total) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
+      
       <div className="w-full px-2 py-4 mx-auto max-w-[99%]">
         <Card>
           <CardHeader className="py-4 flex flex-row justify-between items-center">
