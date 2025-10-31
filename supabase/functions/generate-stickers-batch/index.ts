@@ -106,18 +106,30 @@ Deno.serve(async (req) => {
         productLines.push(`${order.quantity || 1}шт ${carInfo}`);
       }
 
+      const senderName = order.seller?.company_name || order.seller?.full_name || 'PartsBay';
+
       return {
-        sticker_number: String(stickerNum),
+        sticker_header: `Стикер ${stickerNum}`,
         sender_code: order.sender_code || 'SIN',
         order_number: String(order.order_number || stickerNum),
-        qr_url: `https://partsbay.ae/order/${order.order_number || order.id}`,
-        product_info: productLines.join('\n'),
-        quantity: String(order.quantity || 1),
-        sender_name: order.seller?.company_name || order.seller?.full_name || 'PartsBay',
+        qr_code: `https://partsbay.ae/order/${order.order_number || order.id}`,
+        product_line1: productLines[0] || 'Товар',
+        product_line2: productLines[1] || `${order.quantity || 1}шт`,
+        quantity_text: `Кол. мест: ${order.quantity || 1}`,
+        sender_text: `Отправитель: ${senderName}`,
+        bottom_sticker: `Стикер ${stickerNum}`,
       };
     });
 
     console.log('📦 [generate-stickers-batch] Prepared', items.length, 'sticker items');
+
+    // Log first item structure for debugging
+    console.log('📤 [generate-stickers-batch] Sample data structure:', JSON.stringify({
+      company: {
+        name: 'PartsBay',
+        items: items.slice(0, 1)
+      }
+    }, null, 2));
 
     // Get CraftMyPDF credentials
     const craftMyPdfApiKey = Deno.env.get('CRAFTMYPDF_API_KEY');
@@ -139,7 +151,10 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         template_id: craftMyPdfTemplateId,
         data: {
-          items: items, // CraftMyPDF будет итерировать по этому массиву
+          company: {
+            name: 'PartsBay',
+            items: items,
+          }
         },
         export_type: 'json', // Return JSON with URL
         output_file: `stickers_batch_${Date.now()}.pdf`,
@@ -186,7 +201,7 @@ Deno.serve(async (req) => {
         success: true,
         pdf_url: result.file,
         total_stickers: orders.length,
-        sticker_numbers: items.map(i => parseInt(i.sticker_number)),
+        sticker_numbers: orders.map((_, index) => nextStickerNumber + index),
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
