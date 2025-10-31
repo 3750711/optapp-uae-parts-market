@@ -129,6 +129,7 @@ export const useAdminLogisticsState = () => {
     handleClearFilters,
     handleRemoveFilter,
     handleSortChange,
-    updateSettings
+    updateSettings,
+    settings
   };
 };

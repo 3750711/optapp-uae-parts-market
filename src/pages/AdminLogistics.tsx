@@ -146,7 +146,8 @@ const AdminLogistics = () => {
     handleClearFilters,
     handleRemoveFilter,
     handleSortChange,
-    updateSettings
+    updateSettings,
+    settings
   } = useAdminLogisticsState();
 
   // Wrap handleApplyFilters to also clear selection
@@ -199,6 +200,57 @@ const AdminLogistics = () => {
       console.log('💾 [Pages] Saved pages count to localStorage:', data.pages.length);
     }
   }, [data?.pages.length, updateSettings]);
+
+  // Restore saved pages count on component mount
+  const isInitialMount = useRef(true);
+  const isRestoringPages = useRef(false);
+  
+  useEffect(() => {
+    if (isInitialMount.current && !isLoading && !isRestoringPages.current) {
+      isInitialMount.current = false;
+      
+      const savedPagesCount = settings.loadedPagesCount || 1;
+      const currentPagesCount = data?.pages.length || 0;
+      
+      console.log('🔄 [Restore] Attempting to restore pages:', {
+        saved: savedPagesCount,
+        current: currentPagesCount,
+        willLoad: Math.max(0, savedPagesCount - currentPagesCount),
+        hasNextPage
+      });
+      
+      // Load missing pages
+      if (savedPagesCount > currentPagesCount && hasNextPage && !isFetchingNextPage) {
+        isRestoringPages.current = true;
+        const pagesToLoad = savedPagesCount - currentPagesCount;
+        
+        console.log(`📥 [Restore] Loading ${pagesToLoad} pages...`);
+        
+        // Load pages sequentially with small delays
+        let loadedPages = 0;
+        const loadNextPage = () => {
+          if (loadedPages < pagesToLoad && hasNextPage) {
+            fetchNextPage().then(() => {
+              loadedPages++;
+              if (loadedPages < pagesToLoad) {
+                setTimeout(loadNextPage, 150);
+              } else {
+                isRestoringPages.current = false;
+                console.log('✅ [Restore] Pages restoration complete');
+              }
+            }).catch((error) => {
+              console.error('❌ [Restore] Error loading page:', error);
+              isRestoringPages.current = false;
+            });
+          } else {
+            isRestoringPages.current = false;
+          }
+        };
+        
+        loadNextPage();
+      }
+    }
+  }, [isLoading, hasNextPage, data?.pages.length, settings.loadedPagesCount, isFetchingNextPage, fetchNextPage]);
 
 
   // Debug: track hasNextPage changes
