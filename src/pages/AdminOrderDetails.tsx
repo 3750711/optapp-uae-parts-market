@@ -102,11 +102,12 @@ const AdminOrderDetails = () => {
   });
 
   // Chat screenshots query
-  const { data: chatScreenshots = [] } = useQuery({
+  const { data: chatScreenshots = [], isLoading: isChatLoading } = useQuery({
     queryKey: ['confirm-images', id, 'chat_screenshot'],
     queryFn: async () => {
       if (!id) return [];
       
+      console.log('📸 Fetching chat screenshots for order:', id);
       const { data, error } = await supabase
         .from('confirm_images')
         .select('url')
@@ -114,20 +115,22 @@ const AdminOrderDetails = () => {
         .eq('category', 'chat_screenshot');
 
       if (error) {
-        console.error('Chat screenshots fetch error:', error);
+        console.error('❌ Chat screenshots fetch error:', error);
         throw error;
       }
+      console.log('✅ Chat screenshots loaded:', data?.length || 0);
       return data?.map(img => img.url) || [];
     },
-    enabled: !!id && !isAuthLoading && profile?.user_type === 'admin'
+    enabled: !!id && !isAuthLoading
   });
 
   // Signed product photos query
-  const { data: signedProductPhotos = [] } = useQuery({
+  const { data: signedProductPhotos = [], isLoading: isProductLoading } = useQuery({
     queryKey: ['confirm-images', id, 'signed_product'],
     queryFn: async () => {
       if (!id) return [];
       
+      console.log('📦 Fetching signed product photos for order:', id);
       const { data, error } = await supabase
         .from('confirm_images')
         .select('url')
@@ -135,12 +138,13 @@ const AdminOrderDetails = () => {
         .eq('category', 'signed_product');
 
       if (error) {
-        console.error('Signed product photos fetch error:', error);
+        console.error('❌ Signed product photos fetch error:', error);
         throw error;
       }
+      console.log('✅ Signed product photos loaded:', data?.length || 0);
       return data?.map(img => img.url) || [];
     },
-    enabled: !!id && !isAuthLoading && profile?.user_type === 'admin'
+    enabled: !!id && !isAuthLoading
   });
 
   if (!id) {
@@ -196,7 +200,17 @@ const AdminOrderDetails = () => {
     );
   }
 
-  const isAdmin = profile?.user_type === 'admin';
+  const isAdmin = profile?.user_type === 'admin' || profile?.user_type === 'superadmin';
+  
+  // Diagnostic logging
+  console.log('🔍 [AdminOrderDetails] Access check:', {
+    isAdmin,
+    profileUserType: profile?.user_type,
+    userId: user?.id,
+    chatScreenshotsCount: chatScreenshots.length,
+    signedProductPhotosCount: signedProductPhotos.length
+  });
+  
   const isAuthorized = !!user;
   const isSelfOrder = order.seller_id === order.buyer_id;
   const allVideos = [...(order.video_url || []), ...videos];
@@ -294,28 +308,39 @@ const AdminOrderDetails = () => {
               </div>
               
               <div className="flex items-center gap-2">
-                {isAdmin && (
+                {isAdmin ? (
                   <>
                     <Button
                       variant="outline"
-                      onClick={() => setShowConfirmDialog(true)}
+                      onClick={() => {
+                        console.log('🖱️ Button clicked - opening dialog');
+                        setShowConfirmDialog(true);
+                      }}
                       className="flex items-center gap-2"
                     >
                       <Camera className="h-4 w-4" />
                       Подтверждающие фото
                       <div className="flex items-center gap-1 ml-2">
-                        <div className="flex items-center gap-1">
-                          <MessageSquare className={`h-3 w-3 ${chatScreenshots.length > 0 ? 'text-green-600' : 'text-muted-foreground'}`} />
-                          <Badge variant={chatScreenshots.length > 0 ? "default" : "secondary"} className="text-xs px-1 h-4">
-                            {chatScreenshots.length}
+                        {chatScreenshots.length > 0 || signedProductPhotos.length > 0 ? (
+                          <>
+                            <div className="flex items-center gap-1">
+                              <MessageSquare className={`h-3 w-3 ${chatScreenshots.length > 0 ? 'text-green-600' : 'text-muted-foreground'}`} />
+                              <Badge variant={chatScreenshots.length > 0 ? "default" : "secondary"} className="text-xs px-1 h-4">
+                                {chatScreenshots.length}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <CheckCircle2 className={`h-3 w-3 ${signedProductPhotos.length > 0 ? 'text-green-600' : 'text-muted-foreground'}`} />
+                              <Badge variant={signedProductPhotos.length > 0 ? "default" : "secondary"} className="text-xs px-1 h-4">
+                                {signedProductPhotos.length}
+                              </Badge>
+                            </div>
+                          </>
+                        ) : (
+                          <Badge variant="secondary" className="text-xs">
+                            Нет фото
                           </Badge>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <CheckCircle2 className={`h-3 w-3 ${signedProductPhotos.length > 0 ? 'text-green-600' : 'text-muted-foreground'}`} />
-                          <Badge variant={signedProductPhotos.length > 0 ? "default" : "secondary"} className="text-xs px-1 h-4">
-                            {signedProductPhotos.length}
-                          </Badge>
-                        </div>
+                        )}
                       </div>
                     </Button>
                     <OrderConfirmImagesDialog 
@@ -324,6 +349,17 @@ const AdminOrderDetails = () => {
                       onOpenChange={setShowConfirmDialog}
                     />
                   </>
+                ) : (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs">
+                    <div className="flex items-center gap-2 text-yellow-800">
+                      <AlertCircle className="h-4 w-4" />
+                      <span className="font-medium">Ограниченный доступ</span>
+                    </div>
+                    <p className="text-yellow-700 mt-1">
+                      Для просмотра подтверждающих фотографий требуются права администратора.
+                      Текущая роль: <code className="bg-yellow-100 px-1 rounded">{profile?.user_type || 'не определена'}</code>
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
