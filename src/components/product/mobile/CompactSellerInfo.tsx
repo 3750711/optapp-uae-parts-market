@@ -2,6 +2,8 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { User, Shield, ShieldCheck, Star, MessageCircle } from "lucide-react";
+import { BlurredSellerInfo } from '@/components/product/seller/BlurredSellerInfo';
+import { Lang } from '@/types/i18n';
 
 interface CompactSellerInfoProps {
   sellerProfile: any;
@@ -9,12 +11,31 @@ interface CompactSellerInfoProps {
   sellerId: string;
   productTitle: string;
   productId: string;
+  isAuthenticated?: boolean;
+  language?: Lang;
 }
 
 const CompactSellerInfo: React.FC<CompactSellerInfoProps> = ({
   sellerProfile,
   sellerName,
+  isAuthenticated = false,
+  language = 'ru'
 }) => {
+
+  // Показать блюред версию для неавторизованных
+  if (!isAuthenticated) {
+    return (
+      <BlurredSellerInfo
+        sellerName={sellerName}
+        sellerId={sellerProfile?.id}
+        language={language}
+        onLogin={() => {
+          window.location.href = '/login';
+        }}
+        userType="guest"
+      />
+    );
+  }
 
   const getVerificationBadge = () => {
     switch (sellerProfile?.opt_status) {

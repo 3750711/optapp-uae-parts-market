@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Truck, MapPin, MessageCircle } from "lucide-react";
+import { Package, Truck, MapPin, MessageCircle, Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { RestrictionBadge } from '@/components/product/RestrictionBadge';
 import { Product } from "@/types/product";
 import ProductGallery from "@/components/product/ProductGallery";
 import { useAuth } from "@/contexts/AuthContext";
@@ -185,7 +187,16 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
           
           {/* Price + Status on one line */}
           <div className="flex items-center justify-between mb-1">
-            <span className="text-2xl font-bold text-primary">{product.price} $</span>
+            {(user || userProp) ? (
+              <span className="text-2xl font-bold text-primary">{product.price} $</span>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Lock className="h-4 w-4 text-destructive" />
+                <span className="text-2xl font-bold blur-[6px] select-none text-muted-foreground">
+                  $999.99
+                </span>
+              </div>
+            )}
             {getStatusBadge()}
           </div>
           
@@ -194,6 +205,13 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
             <MapPin className="h-4 w-4" />
             {product.product_location || "Dubai"}
           </div>
+          
+          {/* Restriction Badge для неавторизованных */}
+          {!(user || userProp) && (
+            <div className="mt-2">
+              <RestrictionBadge userType="guest" language={language} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -208,9 +226,9 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
         />
       </div>
 
-      {/* Action Buttons - Only for authenticated users */}
-      {(user || userProp) && (
-        <div className="bg-white p-4 border-b border-gray-100">
+      {/* Action Buttons */}
+      <div className="bg-white p-4 border-b border-gray-100">
+        {(user || userProp) ? (
           <div className="grid grid-cols-3 gap-2">
             <button 
               onClick={handleContactSeller}
@@ -227,8 +245,35 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
               />
             </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="space-y-2">
+            <div className="grid grid-cols-3 gap-2 opacity-50">
+              <button 
+                disabled
+                className="flex items-center gap-1 text-xs px-3 py-2 border border-border rounded-md cursor-not-allowed"
+              >
+                <Lock className="h-3 w-3" />
+                Связь
+              </button>
+              
+              <button 
+                disabled
+                className="col-span-2 flex items-center justify-center gap-1 text-xs px-3 py-2 border border-border rounded-md cursor-not-allowed"
+              >
+                <Lock className="h-3 w-3" />
+                Предложить цену
+              </button>
+            </div>
+            <Button 
+              onClick={() => navigate('/login')}
+              className="w-full"
+            >
+              <Lock className="h-4 w-4 mr-2" />
+              Войти
+            </Button>
+          </div>
+        )}
+      </div>
 
       {/* Characteristics */}
       {(product.brand || product.model || product.lot_number) && (
@@ -280,6 +325,8 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
         sellerId={product.seller_id}
         productTitle={product.title}
         productId={product.id}
+        isAuthenticated={!!(user || userProp)}
+        language={language}
       />
 
       {/* Seller Products */}
