@@ -93,11 +93,8 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
 
   const handleGoToLogin = () => {
     setShowAuthDialog(false);
-    navigate('/login', {
-      state: {
-        returnPath: window.location.pathname
-      }
-    });
+    const currentPath = window.location.pathname;
+    navigate(`/login?from=${encodeURIComponent(currentPath)}`);
   };
 
   const copyToClipboard = (text: string) => {
