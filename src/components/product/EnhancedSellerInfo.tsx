@@ -51,7 +51,10 @@ const EnhancedSellerInfo: React.FC<EnhancedSellerInfoProps> = ({
         sellerName={seller_name}
         sellerId={seller_id}
         language={language}
-        onLogin={() => navigate('/login')}
+        onLogin={() => {
+          const currentPath = window.location.pathname;
+          navigate(`/login?from=${encodeURIComponent(currentPath)}`);
+        }}
         userType={userType}
       />
     );

@@ -164,7 +164,10 @@ const ProductLayout: React.FC<ProductLayoutProps> = ({
       {!user && (
         <AuthPromptOverlay 
           language={language}
-          onLogin={() => navigate('/login')}
+          onLogin={() => {
+            const currentPath = window.location.pathname;
+            navigate(`/login?from=${encodeURIComponent(currentPath)}`);
+          }}
           onRegister={() => navigate('/register')}
         />
       )}
