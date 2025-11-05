@@ -37,19 +37,22 @@ export const AuthPromptOverlay: React.FC<AuthPromptOverlayProps> = ({
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 animate-in slide-in-from-bottom duration-300">
-      <div className="bg-primary/95 backdrop-blur-md border-t border-primary-foreground/10 shadow-lg">
-        <div className="max-w-4xl mx-auto px-4 py-4">
+      {/* Backdrop blur overlay */}
+      <div className="fixed inset-0 bg-background/60 backdrop-blur-sm -z-10" />
+      
+      <div className="bg-gradient-to-r from-primary to-primary/90 backdrop-blur-md border-t-2 border-primary-foreground/20 shadow-2xl">
+        <div className="max-w-4xl mx-auto px-4 py-5 sm:py-6">
           <div className="flex items-center justify-between gap-4">
             {/* Icon & Text */}
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary-foreground/10 flex items-center justify-center">
-                <Lock className="h-5 w-5 text-primary-foreground" />
+              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary-foreground/15 flex items-center justify-center ring-2 ring-primary-foreground/20">
+                <Lock className="h-6 w-6 text-primary-foreground" />
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="text-primary-foreground font-semibold text-sm sm:text-base">
+                <h3 className="text-primary-foreground font-bold text-base sm:text-lg mb-1">
                   {t.overlayTitle}
                 </h3>
-                <p className="text-primary-foreground/80 text-xs sm:text-sm">
+                <p className="text-primary-foreground/90 text-sm sm:text-base">
                   {t.overlayDescription}
                 </p>
               </div>
@@ -59,16 +62,16 @@ export const AuthPromptOverlay: React.FC<AuthPromptOverlayProps> = ({
             <div className="flex items-center gap-2 flex-shrink-0">
               <Button
                 onClick={onLogin}
-                className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 font-medium"
-                size="sm"
+                className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 font-semibold shadow-md"
+                size="default"
               >
                 {t.loginButton}
               </Button>
               <Button
                 onClick={onRegister}
                 variant="outline"
-                className="border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10"
-                size="sm"
+                className="border-2 border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/15 font-semibold"
+                size="default"
               >
                 {t.registerButton}
               </Button>
@@ -76,9 +79,9 @@ export const AuthPromptOverlay: React.FC<AuthPromptOverlayProps> = ({
                 onClick={handleClose}
                 variant="ghost"
                 size="icon"
-                className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 flex-shrink-0"
+                className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/20 flex-shrink-0"
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
                 <span className="sr-only">{t.closeButton}</span>
               </Button>
             </div>
