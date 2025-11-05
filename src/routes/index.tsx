@@ -226,9 +226,9 @@ const AppRoutes: React.FC = () => {
               </ProtectedRoute>
             } />
             <Route path="/product/:id" element={
-              <ProtectedRoute excludedRoles={['seller']}>
+              <PublicExceptSellers>
                 <ProductDetail />
-              </ProtectedRoute>
+              </PublicExceptSellers>
             } />
             <Route path="/stores" element={
               <ProtectedRoute excludedRoles={['seller']}>
