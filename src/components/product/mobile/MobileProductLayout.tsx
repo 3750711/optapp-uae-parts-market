@@ -33,6 +33,7 @@ interface MobileProductLayoutProps {
   deliveryMethod: any;
   onDeliveryMethodChange: (method: any) => void;
   onProductUpdate: () => void;
+  user?: any;
 }
 
 const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
@@ -46,6 +47,7 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
   deliveryMethod,
   onDeliveryMethodChange,
   onProductUpdate,
+  user: userProp,
 }) => {
   const [showOrderDialog, setShowOrderDialog] = useState(false);
   const [showContactDialog, setShowContactDialog] = useState(false);
@@ -206,25 +208,27 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
         />
       </div>
 
-      {/* Action Buttons */}
-      <div className="bg-white p-4 border-b border-gray-100">
-        <div className="grid grid-cols-3 gap-2">
-          <button 
-            onClick={handleContactSeller}
-            className="flex items-center gap-1 text-xs px-3 py-2 border border-border rounded-md hover:bg-accent"
-          >
-            <MessageCircle className="h-3 w-3" />
-            Связь
-          </button>
-          
-          <div className="col-span-2">
-            <SimpleMakeOfferButton
-              product={product}
-              compact={true}
-            />
+      {/* Action Buttons - Only for authenticated users */}
+      {(user || userProp) && (
+        <div className="bg-white p-4 border-b border-gray-100">
+          <div className="grid grid-cols-3 gap-2">
+            <button 
+              onClick={handleContactSeller}
+              className="flex items-center gap-1 text-xs px-3 py-2 border border-border rounded-md hover:bg-accent"
+            >
+              <MessageCircle className="h-3 w-3" />
+              Связь
+            </button>
+            
+            <div className="col-span-2">
+              <SimpleMakeOfferButton
+                product={product}
+                compact={true}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Characteristics */}
       {(product.brand || product.model || product.lot_number) && (
@@ -288,19 +292,23 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
       {/* Bottom padding for sticky buy button */}
       <div className="h-20"></div>
 
-      {/* Sticky Actions */}
-      <MobileStickyActions 
-        product={product}
-        sellerProfile={sellerProfile}
-        deliveryMethod={deliveryMethod}
-        onDeliveryMethodChange={onDeliveryMethodChange}
-      />
-      
-      {/* Sticky Buy Button */}
-      <MobileStickyBuyButton 
-        product={product}
-        onBuyNow={handleBuyNow}
-      />
+      {/* Sticky Actions - Only for authenticated users */}
+      {(user || userProp) && (
+        <>
+          <MobileStickyActions 
+            product={product}
+            sellerProfile={sellerProfile}
+            deliveryMethod={deliveryMethod}
+            onDeliveryMethodChange={onDeliveryMethodChange}
+          />
+          
+          {/* Sticky Buy Button */}
+          <MobileStickyBuyButton 
+            product={product}
+            onBuyNow={handleBuyNow}
+          />
+        </>
+      )}
 
       {/* Order Dialog */}
       <OrderConfirmationDialog

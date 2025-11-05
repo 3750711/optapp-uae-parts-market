@@ -92,6 +92,7 @@ const ProductLayout: React.FC<ProductLayoutProps> = ({
         deliveryMethod={deliveryMethod}
         onDeliveryMethodChange={handleDeliveryMethodChange}
         onProductUpdate={onProductUpdate}
+        user={user}
       />
     );
   }
