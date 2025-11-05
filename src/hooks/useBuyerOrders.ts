@@ -32,9 +32,8 @@ export const useBuyerOrders = () => {
               lot_number
             ),
             seller:profiles!orders_seller_id_fkey (
-              phone,
-              telegram,
-              opt_id
+              opt_id,
+              full_name
             )
           `);
 
