@@ -134,6 +134,7 @@ const ProductLayout: React.FC<ProductLayoutProps> = ({
             deliveryMethod={deliveryMethod}
             onDeliveryMethodChange={handleDeliveryMethodChange}
             language={language}
+            user={user}
           />
         </GalleryErrorBoundary>
         

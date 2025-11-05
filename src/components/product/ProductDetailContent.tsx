@@ -22,6 +22,7 @@ interface ProductDetailContentProps {
   deliveryMethod: Database["public"]["Enums"]["delivery_method"];
   onDeliveryMethodChange: (method: Database["public"]["Enums"]["delivery_method"]) => void;
   language?: Lang;
+  user?: any;
 }
 
 const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
@@ -35,7 +36,8 @@ const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
   sellerName,
   deliveryMethod,
   onDeliveryMethodChange,
-  language = 'ru'
+  language = 'ru',
+  user
 }) => {
   // Preload critical resources
   useResourcePreloader({
@@ -85,13 +87,15 @@ const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
           seller_id={product.seller_id}
           language={language}
         >
-          <ContactButtons 
-            sellerPhone={product.phone_url || sellerProfile?.phone}
-            sellerTelegram={product.telegram_url || sellerProfile?.telegram}
-            productTitle={product.title}
-            isVerified={sellerProfile?.opt_status === 'verified'}
-            verificationStatus={sellerProfile?.opt_status || 'pending'}
-          />
+          {user && (
+            <ContactButtons 
+              sellerPhone={product.phone_url || sellerProfile?.phone}
+              sellerTelegram={product.telegram_url || sellerProfile?.telegram}
+              productTitle={product.title}
+              isVerified={sellerProfile?.opt_status === 'verified'}
+              verificationStatus={sellerProfile?.opt_status || 'pending'}
+            />
+          )}
         </EnhancedSellerInfo>
         
         {(product.brand || product.model || product.lot_number) && (
