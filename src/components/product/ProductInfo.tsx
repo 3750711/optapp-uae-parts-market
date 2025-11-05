@@ -53,7 +53,10 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
       <BlurredPriceSection 
         product={product}
         language={language}
-        onLogin={() => navigate('/login')}
+        onLogin={() => {
+          const currentPath = window.location.pathname;
+          navigate(`/login?from=${encodeURIComponent(currentPath)}`);
+        }}
         userType={userType}
       />
     );

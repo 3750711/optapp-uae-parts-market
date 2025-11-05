@@ -265,7 +265,10 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
               </button>
             </div>
             <Button 
-              onClick={() => navigate('/login')}
+              onClick={() => {
+                const currentPath = window.location.pathname;
+                navigate(`/login?from=${encodeURIComponent(currentPath)}`);
+              }}
               className="w-full"
             >
               <Lock className="h-4 w-4 mr-2" />

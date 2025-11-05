@@ -57,6 +57,18 @@ const GuestRoute = ({ children }: GuestRouteProps) => {
   if (status === 'authed' && user && profile) {
     console.log("🔐 GuestRoute: User authenticated, redirecting based on verification and role");
     
+    // Check if there's a return URL from login (e.g., from product page)
+    const searchParams = new URLSearchParams(location.search);
+    const returnTo = searchParams.get('returnTo');
+
+    // If user came from login with a product page URL, redirect there
+    if (returnTo && returnTo.startsWith('/product/')) {
+      console.log("🔐 GuestRoute: Redirecting to product page:", returnTo);
+      if (redirectProtection.canRedirect(location.pathname, returnTo)) {
+        return <Navigate to={returnTo} replace />;
+      }
+    }
+    
     // Enforce: any non-admin user who is not verified must go to pending-approval
     if (profile.user_type !== 'admin' && profile.verification_status !== 'verified') {
       console.log("🔐 GuestRoute: Redirecting unverified user to pending approval");
