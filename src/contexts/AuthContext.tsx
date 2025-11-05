@@ -226,7 +226,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          id,
+          full_name,
+          opt_id,
+          user_type,
+          verification_status,
+          rating,
+          opt_status,
+          location,
+          company_name,
+          description_user,
+          first_login_completed,
+          profile_completed,
+          accepted_terms,
+          accepted_privacy,
+          preferred_locale,
+          created_at,
+          avatar_url,
+          is_trusted_seller,
+          listing_count,
+          communication_ability,
+          auth_method,
+          has_password,
+          email_confirmed,
+          last_login,
+          accepted_terms_at,
+          accepted_privacy_at
+        `)
         .eq('id', user.id)
         .abortSignal(signal)
         .single();

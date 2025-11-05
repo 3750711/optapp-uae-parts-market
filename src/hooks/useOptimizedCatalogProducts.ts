@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { ProductProps } from '@/components/product/ProductCard';
 import { SortOption } from '@/components/catalog/ProductSorting';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
+import { useAuth } from '@/contexts/AuthContext';
 
 export type ProductType = {
   id: string;
@@ -77,6 +78,18 @@ export const useOptimizedCatalogProducts = ({
   findBrandNameById,
   findModelNameById
 }: UseOptimizedCatalogProductsProps = {}) => {
+  // Get auth state from context
+  const { user, profile } = useAuth();
+  const isAuthenticated = !!user;
+  const userType = profile?.user_type;
+  
+  // Determine table name based on auth state
+  const tableName = useMemo(() => {
+    return isAuthenticated && userType !== 'seller' 
+      ? 'products' 
+      : 'products_public';
+  }, [isAuthenticated, userType]);
+  
   // Simplified state management - single search term
   const [searchTerm, setSearchTerm] = useState('');
   const [hideSoldProducts, setHideSoldProducts] = useState(false);
@@ -226,29 +239,10 @@ export const useOptimizedCatalogProducts = ({
 
   // Separate query for total count
   const { data: totalCount, isLoading: isCountLoading } = useQuery({
-    queryKey: ['products-count', filters],
+    queryKey: ['products-count', filters, tableName],
     queryFn: async () => {
       try {
-        console.log('🔢 Executing count query with filters:', filters);
-        
-        // Get user session and profile to determine table access
-        const { data: { session } } = await supabase.auth.getSession();
-        let tableName = 'products_public';
-        
-        if (session?.user) {
-          // Get user type from profile
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('user_type')
-            .eq('id', session.user.id)
-            .single();
-          
-          const userType = profileData?.user_type;
-          // Sellers see products_public (without prices), buyers and admins see products (with prices)
-          tableName = (userType !== 'seller') ? 'products' : 'products_public';
-        }
-        
-        console.log(`🔢 [Count Query] Using table: ${tableName} (authenticated: ${!!session?.user})`);
+        console.log(`🔢 [Count Query] Using table: ${tableName} (authenticated: ${isAuthenticated}, userType: ${userType})`);
         
         let countQuery = supabase
           .from(tableName)
@@ -286,33 +280,14 @@ export const useOptimizedCatalogProducts = ({
     error,
     refetch
   } = useInfiniteQuery({
-    queryKey: ['products-infinite-optimized', filters],
+    queryKey: ['products-infinite-optimized', filters, tableName],
     queryFn: async ({ pageParam = 0 }) => {
       try {
         const from = pageParam * productsPerPage;
         const to = from + productsPerPage - 1;
         
-        console.log('🔎 Executing optimized product search...');
+        console.log(`🔍 [Products Query] Using table: ${tableName} (authenticated: ${isAuthenticated}, userType: ${userType})`);
         const startTime = performance.now();
-        
-        // Get user session and profile to determine table access
-        const { data: { session } } = await supabase.auth.getSession();
-        let tableName = 'products_public';
-        
-        if (session?.user) {
-          // Get user type from profile
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('user_type')
-            .eq('id', session.user.id)
-            .single();
-          
-          const userType = profileData?.user_type;
-          // Sellers see products_public (without prices), buyers and admins see products (with prices)
-          tableName = (userType !== 'seller') ? 'products' : 'products_public';
-        }
-        
-        console.log(`🔍 [Products Query] Using table: ${tableName} (authenticated: ${!!session?.user})`);
         
         // Оптимизированный запрос - выбираем только необходимые поля
         const selectFields = [
