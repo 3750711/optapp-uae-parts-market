@@ -44,12 +44,15 @@ const EnhancedSellerInfo: React.FC<EnhancedSellerInfoProps> = ({
   const isOwner = user?.id === seller_id;
 
   if (!user || (isSeller && !isOwner)) {
+    const userType: 'guest' | 'seller' = !user ? 'guest' : 'seller';
+    
     return (
       <BlurredSellerInfo 
         sellerName={seller_name}
         sellerId={seller_id}
         language={language}
         onLogin={() => navigate('/login')}
+        userType={userType}
       />
     );
   }

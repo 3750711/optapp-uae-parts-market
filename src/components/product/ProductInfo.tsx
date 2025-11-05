@@ -47,11 +47,14 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   const isSellerViewingOtherProduct = isSeller && !isOwner;
 
   if (!user || product.price === null || isSellerViewingOtherProduct) {
+    const userType: 'guest' | 'seller' = !user ? 'guest' : 'seller';
+    
     return (
       <BlurredPriceSection 
         product={product}
         language={language}
         onLogin={() => navigate('/login')}
+        userType={userType}
       />
     );
   }

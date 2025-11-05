@@ -5,17 +5,20 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { authPrompt } from '@/utils/translations/authPrompt';
 import { Lang } from '@/types/i18n';
 import { Product } from '@/types/product';
+import { RestrictionBadge } from '@/components/product/RestrictionBadge';
 
 interface BlurredPriceSectionProps {
   product: Product;
   language: Lang;
   onLogin: () => void;
+  userType?: 'guest' | 'seller';
 }
 
 export const BlurredPriceSection: React.FC<BlurredPriceSectionProps> = ({
   product,
   language,
-  onLogin
+  onLogin,
+  userType = 'guest'
 }) => {
   const t = authPrompt[language];
 
@@ -24,6 +27,9 @@ export const BlurredPriceSection: React.FC<BlurredPriceSectionProps> = ({
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold">{t.sellerInfo}</h2>
       </div>
+
+      {/* Restriction Badge */}
+      <RestrictionBadge userType={userType} language={language} className="mb-4" />
 
       {/* Blurred Price */}
       <TooltipProvider>

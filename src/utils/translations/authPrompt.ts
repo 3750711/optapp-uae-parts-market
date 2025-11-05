@@ -19,6 +19,8 @@ export interface AuthPromptTranslations {
   delivery: string;
   sellerRestriction: string;
   upgradeToBuyer: string;
+  availableAfterLogin: string;
+  notAvailableForSellers: string;
 }
 
 export const authPrompt: Record<Lang, AuthPromptTranslations> = {
@@ -40,7 +42,9 @@ export const authPrompt: Record<Lang, AuthPromptTranslations> = {
     makeOffer: "Сделать предложение",
     delivery: "Доставка:",
     sellerRestriction: "Доступно только для покупателей",
-    upgradeToBuyer: "Переключитесь на аккаунт покупателя"
+    upgradeToBuyer: "Переключитесь на аккаунт покупателя",
+    availableAfterLogin: "Доступно только после авторизации",
+    notAvailableForSellers: "Данные не доступны для продавцов"
   },
   en: {
     overlayTitle: "Sign in for access",
@@ -60,7 +64,9 @@ export const authPrompt: Record<Lang, AuthPromptTranslations> = {
     makeOffer: "Make an offer",
     delivery: "Delivery:",
     sellerRestriction: "Available for buyers only",
-    upgradeToBuyer: "Switch to buyer account"
+    upgradeToBuyer: "Switch to buyer account",
+    availableAfterLogin: "Available after login only",
+    notAvailableForSellers: "Not available for sellers"
   },
   bn: {
     overlayTitle: "অ্যাক্সেসের জন্য সাইন ইন করুন",
@@ -80,6 +86,8 @@ export const authPrompt: Record<Lang, AuthPromptTranslations> = {
     makeOffer: "অফার করুন",
     delivery: "ডেলিভারি:",
     sellerRestriction: "শুধুমাত্র ক্রেতাদের জন্য উপলব্ধ",
-    upgradeToBuyer: "ক্রেতা অ্যাকাউন্টে স্যুইচ করুন"
+    upgradeToBuyer: "ক্রেতা অ্যাকাউন্টে স্যুইচ করুন",
+    availableAfterLogin: "শুধুমাত্র লগইনের পরে উপলব্ধ",
+    notAvailableForSellers: "বিক্রেতাদের জন্য উপলব্ধ নয়"
   }
 };

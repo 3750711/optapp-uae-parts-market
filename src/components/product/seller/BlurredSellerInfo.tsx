@@ -5,19 +5,22 @@ import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { authPrompt } from '@/utils/translations/authPrompt';
 import { Lang } from '@/types/i18n';
+import { RestrictionBadge } from '@/components/product/RestrictionBadge';
 
 interface BlurredSellerInfoProps {
   sellerName?: string;
   sellerId?: string;
   language: Lang;
   onLogin: () => void;
+  userType?: 'guest' | 'seller';
 }
 
 export const BlurredSellerInfo: React.FC<BlurredSellerInfoProps> = ({
   sellerName,
   sellerId,
   language,
-  onLogin
+  onLogin,
+  userType = 'guest'
 }) => {
   const t = authPrompt[language];
 
@@ -29,6 +32,9 @@ export const BlurredSellerInfo: React.FC<BlurredSellerInfoProps> = ({
           <User className="h-5 w-5 text-muted-foreground" />
           <h3 className="text-lg font-semibold">{t.sellerInfo}</h3>
         </div>
+
+        {/* Restriction Badge */}
+        <RestrictionBadge userType={userType} language={language} />
 
         {/* Blurred Seller Name */}
         <TooltipProvider>
