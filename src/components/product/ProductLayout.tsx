@@ -168,7 +168,10 @@ const ProductLayout: React.FC<ProductLayoutProps> = ({
             const currentPath = window.location.pathname;
             navigate(`/login?from=${encodeURIComponent(currentPath)}`);
           }}
-          onRegister={() => navigate('/register')}
+          onRegister={() => {
+            const currentPath = window.location.pathname;
+            navigate(`/register?from=${encodeURIComponent(currentPath)}`);
+          }}
         />
       )}
     </>

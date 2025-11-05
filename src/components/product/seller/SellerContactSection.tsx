@@ -45,7 +45,10 @@ export const SellerContactSection: React.FC<SellerContactSectionProps> = ({
           <Button onClick={onShowContactInfo}>
             Войти для связи с продавцом
           </Button>
-          <Button variant="outline" onClick={() => navigate('/register')}>
+          <Button variant="outline" onClick={() => {
+            const currentPath = window.location.pathname;
+            navigate(`/register?from=${encodeURIComponent(currentPath)}`);
+          }}>
             Регистрация
           </Button>
         </div>
