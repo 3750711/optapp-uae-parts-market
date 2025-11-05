@@ -1,5 +1,5 @@
-
 import React from "react";
+import ResponsivePicture from "@/components/ui/ResponsivePicture";
 
 interface ProductDetailFullGalleryProps {
   imageUrls: string[];
@@ -24,11 +24,12 @@ const ProductDetailFullGallery: React.FC<ProductDetailFullGalleryProps> = ({
             className="overflow-hidden cursor-pointer"
             onClick={() => onImageClick(imageUrl)}
           >
-            <img
+            <ResponsivePicture
               src={imageUrl}
               alt={`${productTitle} - фото ${index + 1}`}
+              preset="gallery"
               className="w-full h-auto object-contain hover:opacity-90 transition-opacity duration-300"
-              loading={index < 3 ? 'eager' : 'lazy'}
+              priority={index < 3}
             />
           </div>
         ))}

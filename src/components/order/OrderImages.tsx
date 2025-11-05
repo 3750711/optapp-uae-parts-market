@@ -1,6 +1,6 @@
-
 import React, { useState } from 'react';
 import { Label } from "@/components/ui/label";
+import ResponsivePicture from "@/components/ui/ResponsivePicture";
 
 interface OrderImagesProps {
   images: string[];
@@ -17,11 +17,12 @@ export const OrderImages: React.FC<OrderImagesProps> = ({
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {images.map((url, index) => (
           <div key={url} className="relative aspect-square">
-            <img
+            <ResponsivePicture
               src={url}
               alt={`Order image ${index + 1}`}
+              preset="card"
               className="w-full h-full object-contain rounded-lg"
-              loading="lazy"
+              priority={false}
             />
           </div>
         ))}
