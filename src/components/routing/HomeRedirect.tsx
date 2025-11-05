@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { useAuthWithProfile } from "@/hooks/useAuthWithProfile";
 import { devLog } from "@/utils/logger";
 import { redirectProtection } from "@/utils/redirectProtection";
@@ -12,6 +12,8 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
   const { user, profile, isLoading, status } = useAuthWithProfile();
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
   const hasRedirectedRef = useRef(false);
   
   console.log("🚀 HomeRedirect: Auth state check:", { 
@@ -52,7 +54,20 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
   if (status === 'authed' && user && profile) {
     console.log("🚀 HomeRedirect: User authenticated, determining redirect");
     
-    // Determine redirect target based on user state
+    // First priority: Check for returnTo parameter (product pages after login/register)
+    if (returnTo && returnTo.startsWith('/product/')) {
+      console.log("🚀 HomeRedirect: Found returnTo product page:", returnTo);
+      if (!hasRedirectedRef.current && redirectProtection.canRedirect(location.pathname, returnTo)) {
+        hasRedirectedRef.current = true;
+        setTimeout(() => {
+          console.log("🚀 HomeRedirect: Executing redirect to returnTo:", returnTo);
+          navigate(returnTo, { replace: true });
+        }, 50);
+        return null; // Prevent further rendering
+      }
+    }
+    
+    // Second priority: Determine redirect target based on user state
     const redirectTarget = 
       profile.user_type !== 'admin' && profile.verification_status !== 'verified' ? "/pending-approval" :
       profile.user_type === 'buyer' ? "/buyer-dashboard" :
