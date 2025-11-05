@@ -1,6 +1,7 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Building2 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { MultiStepRegistration } from '@/components/registration/MultiStepRegistration';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -30,6 +31,8 @@ const registerTranslations = {
 
 const Register = () => {
   const { language } = useLanguage();
+  const [searchParams] = useSearchParams();
+  const from = searchParams.get('from');
   const t = registerTranslations[language];
 
   return (
@@ -67,7 +70,7 @@ const Register = () => {
 
               {/* Registration Form */}
               <div className="max-w-lg mx-auto">
-                <MultiStepRegistration language={language} />
+                <MultiStepRegistration language={language} returnPath={from || undefined} />
               </div>
             </div>
           </div>

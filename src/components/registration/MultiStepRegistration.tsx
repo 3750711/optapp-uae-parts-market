@@ -33,10 +33,12 @@ type RegistrationType = 'telegram' | 'standard';
 
 interface MultiStepRegistrationProps {
   language?: 'ru' | 'en' | 'bn';
+  returnPath?: string;
 }
 
 export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({ 
-  language = 'ru' 
+  language = 'ru',
+  returnPath
 }) => {
   const [currentStep, setCurrentStep] = useState<RegistrationStep>('type-selection');
   const [registrationType, setRegistrationType] = useState<RegistrationType | null>(null);
@@ -243,8 +245,12 @@ const createSellerAccount = async (personalInfo: PersonalData) => {
         variant: "default",
       });
 
-      // Step 3: Redirect to email verification (email verification is optional for profile activation)
-      navigate(`/verify-email?email=${encodeURIComponent(personalInfo.email)}&returnTo=/profile`);
+      // Step 3: Redirect based on returnPath
+      if (returnPath && returnPath.startsWith('/product/')) {
+        navigate(`/?returnTo=${encodeURIComponent(returnPath)}`);
+      } else {
+        navigate(`/verify-email?email=${encodeURIComponent(personalInfo.email)}&returnTo=/profile`);
+      }
     } catch (error: any) {
       console.error('Registration error:', error);
       await logRegistrationFailure('seller', 'email', error.message);
@@ -330,8 +336,12 @@ const createBuyerAccount = async (data: BuyerData) => {
         variant: "default",
       });
 
-      // Step 3: Redirect to email verification
-      navigate(`/verify-email?email=${encodeURIComponent(data.email)}&returnTo=/profile`);
+      // Step 3: Redirect based on returnPath
+      if (returnPath && returnPath.startsWith('/product/')) {
+        navigate(`/?returnTo=${encodeURIComponent(returnPath)}`);
+      } else {
+        navigate(`/verify-email?email=${encodeURIComponent(data.email)}&returnTo=/profile`);
+      }
     } catch (error: any) {
       console.error('Registration error:', error);
       await logRegistrationFailure('buyer', 'email', error.message);
