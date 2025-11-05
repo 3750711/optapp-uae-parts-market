@@ -29,8 +29,10 @@ export const useStatistics = () => {
         // Get unique sellers count
         const { count: totalSellers } = await supabase
           .from('profiles')
-          .select('*', { count: 'planned', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('user_type', 'seller');
+        
+        // SECURITY: Only counting, no need for SELECT *
 
         const result = {
           totalProducts: totalProducts || 0,

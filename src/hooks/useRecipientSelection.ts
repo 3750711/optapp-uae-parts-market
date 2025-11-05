@@ -7,7 +7,6 @@ export interface UserProfile {
   id: string;
   email: string;
   full_name?: string;
-  telegram?: string;
   user_type: 'buyer' | 'seller' | 'admin';
   verification_status: 'pending' | 'verified' | 'blocked';
   opt_status: 'free_user' | 'opt_user';
@@ -45,9 +44,11 @@ export const useRecipientSelection = () => {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, email, full_name, telegram, user_type, verification_status, opt_status')
-          .or(`full_name.ilike.%${debouncedSearchQuery}%,email.ilike.%${debouncedSearchQuery}%,telegram.ilike.%${debouncedSearchQuery}%`)
+          .select('id, email, full_name, user_type, verification_status, opt_status')
+          .or(`full_name.ilike.%${debouncedSearchQuery}%,email.ilike.%${debouncedSearchQuery}%`)
           .limit(20);
+        
+        // SECURITY: Only fields needed for recipient selection, NO phone/telegram
 
         if (error) {
           console.error('Error searching users:', error);
@@ -81,7 +82,11 @@ export const useRecipientSelection = () => {
   const loadGroupUsers = async (groupValue: string) => {
     setIsLoadingGroupUsers(true);
     try {
-      let query = supabase.from('profiles').select('*');
+      let query = supabase
+        .from('profiles')
+        .select('id, email, full_name, user_type, verification_status, opt_status');
+      
+      // SECURITY: Only fields needed for recipient selection, NO phone/telegram
       
       switch (groupValue) {
         case 'all_users':
