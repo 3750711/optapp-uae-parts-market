@@ -3,10 +3,16 @@ import { useLocalStorageSettings } from "@/hooks/useLocalStorageSettings";
 import { LogisticsFilters } from "@/types/logisticsFilters";
 import { Order } from "@/hooks/useServerFilteredOrders";
 
-type SortConfig = {
-  field: keyof Order | null;
-  direction: 'asc' | 'desc' | null;
+type SortLevel = {
+  field: keyof Order;
+  direction: 'asc' | 'desc';
 };
+
+type SortConfig = {
+  levels: SortLevel[];
+};
+
+export type { SortLevel, SortConfig };
 
 interface LogisticsSettings {
   appliedFilters: LogisticsFilters;
@@ -26,8 +32,7 @@ const defaultSettings: LogisticsSettings = {
     readyForShipment: null
   },
   sortConfig: {
-    field: null,
-    direction: null
+    levels: []
   },
   loadedPagesCount: 1
 };
@@ -112,12 +117,32 @@ export const useAdminLogisticsState = () => {
     updateSettings({ appliedFilters: newFilters });
   }, [appliedFilters, updateSettings]);
 
-  // Update sort configuration
-  const handleSortChange = useCallback((field: keyof Order | null, direction: 'asc' | 'desc' | null) => {
-    const newSortConfig = { field, direction };
+  // Update sort configuration (multi-level support)
+  const handleSortChange = useCallback((
+    field: keyof Order, 
+    direction: 'asc' | 'desc',
+    addLevel: boolean = false
+  ) => {
+    let newLevels: SortLevel[];
+    
+    if (addLevel) {
+      // Shift+Click: добавляем новый уровень, удаляя дубликаты поля
+      newLevels = [
+        ...sortConfig.levels.filter(l => l.field !== field),
+        { field, direction }
+      ];
+    } else {
+      // Обычный клик: заменяем сортировку + автоматический fallback на order_number
+      newLevels = [{ field, direction }];
+      if (field !== 'order_number') {
+        newLevels.push({ field: 'order_number', direction: 'asc' });
+      }
+    }
+    
+    const newSortConfig = { levels: newLevels };
     setSortConfig(newSortConfig);
     updateSettings({ sortConfig: newSortConfig });
-  }, [updateSettings]);
+  }, [sortConfig, updateSettings]);
 
   const hasUnappliedChanges = useMemo(() => {
     return JSON.stringify(pendingFilters) !== JSON.stringify(appliedFilters);

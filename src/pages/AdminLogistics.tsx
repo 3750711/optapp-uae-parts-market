@@ -809,18 +809,29 @@ const AdminLogistics = () => {
     setPendingContainerChange({});
   };
 
-  const handleSort = (field: keyof Order) => {
-    const current = sortConfig;
-    const newDirection = 
-      current.field === field
-        ? current.direction === 'asc'
-          ? 'desc'
-          : current.direction === 'desc'
-            ? null
-            : 'asc'
-        : 'asc';
+  const handleSort = (field: keyof Order, event?: React.MouseEvent) => {
+    const isShiftKey = event?.shiftKey || false;
+    const primaryLevel = sortConfig.levels[0];
     
-    handleSortChange(field, newDirection);
+    // Определяем направление сортировки
+    let newDirection: 'asc' | 'desc' = 'asc';
+    
+    if (!isShiftKey && primaryLevel?.field === field) {
+      // Обычный клик по тому же полю - переключаем направление
+      newDirection = primaryLevel.direction === 'asc' ? 'desc' : 'asc';
+    }
+    
+    handleSortChange(field, newDirection, isShiftKey);
+  };
+
+  // Вспомогательная функция для определения состояния сортировки колонки
+  const getSortState = (field: keyof Order): { direction: 'asc' | 'desc' | null; level: number | null } => {
+    const levelIndex = sortConfig.levels.findIndex(l => l.field === field);
+    if (levelIndex === -1) return { direction: null, level: null };
+    return { 
+      direction: sortConfig.levels[levelIndex].direction, 
+      level: levelIndex + 1 
+    };
   };
 
   return (
@@ -1071,8 +1082,9 @@ const AdminLogistics = () => {
                         minWidth={80}
                         onResize={handleResize}
                         sortable
-                        sorted={sortConfig.field === 'order_number' ? sortConfig.direction : null}
-                        onSort={() => handleSort('order_number')}
+                        sorted={getSortState('order_number').direction}
+                        sortLevel={getSortState('order_number').level}
+                        onSort={(e) => handleSort('order_number', e)}
                       >
                         № заказа
                       </ResizableTableHead>
@@ -1082,8 +1094,9 @@ const AdminLogistics = () => {
                         minWidth={10}
                         onResize={handleResize}
                         sortable
-                        sorted={sortConfig.field === 'seller_opt_id' ? sortConfig.direction : null}
-                        onSort={() => handleSort('seller_opt_id')}
+                        sorted={getSortState('seller_opt_id').direction}
+                        sortLevel={getSortState('seller_opt_id').level}
+                        onSort={(e) => handleSort('seller_opt_id', e)}
                       >
                         Прод.
                       </ResizableTableHead>
@@ -1093,8 +1106,9 @@ const AdminLogistics = () => {
                         minWidth={10}
                         onResize={handleResize}
                         sortable
-                        sorted={sortConfig.field === 'buyer_opt_id' ? sortConfig.direction : null}
-                        onSort={() => handleSort('buyer_opt_id')}
+                        sorted={getSortState('buyer_opt_id').direction}
+                        sortLevel={getSortState('buyer_opt_id').level}
+                        onSort={(e) => handleSort('buyer_opt_id', e)}
                       >
                         Пок.
                       </ResizableTableHead>
@@ -1104,8 +1118,9 @@ const AdminLogistics = () => {
                         minWidth={115}
                         onResize={handleResize}
                         sortable
-                        sorted={sortConfig.field === 'title' ? sortConfig.direction : null}
-                        onSort={() => handleSort('title')}
+                        sorted={getSortState('title').direction}
+                        sortLevel={getSortState('title').level}
+                        onSort={(e) => handleSort('title', e)}
                       >
                         Наименование
                       </ResizableTableHead>
@@ -1115,8 +1130,9 @@ const AdminLogistics = () => {
                         minWidth={80}
                         onResize={handleResize}
                         sortable
-                        sorted={sortConfig.field === 'price' ? sortConfig.direction : null}
-                        onSort={() => handleSort('price')}
+                        sorted={getSortState('price').direction}
+                        sortLevel={getSortState('price').level}
+                        onSort={(e) => handleSort('price', e)}
                       >
                         Цена ($)
                       </ResizableTableHead>
@@ -1126,8 +1142,9 @@ const AdminLogistics = () => {
                         minWidth={10}
                         onResize={handleResize}
                         sortable
-                        sorted={sortConfig.field === 'place_number' ? sortConfig.direction : null}
-                        onSort={() => handleSort('place_number')}
+                        sorted={getSortState('place_number').direction}
+                        sortLevel={getSortState('place_number').level}
+                        onSort={(e) => handleSort('place_number', e)}
                       >
                         М
                       </ResizableTableHead>
@@ -1137,8 +1154,9 @@ const AdminLogistics = () => {
                         minWidth={80}
                         onResize={handleResize}
                         sortable
-                        sorted={sortConfig.field === 'delivery_price_confirm' ? sortConfig.direction : null}
-                        onSort={() => handleSort('delivery_price_confirm')}
+                        sorted={getSortState('delivery_price_confirm').direction}
+                        sortLevel={getSortState('delivery_price_confirm').level}
+                        onSort={(e) => handleSort('delivery_price_confirm', e)}
                       >
                         Доставка
                       </ResizableTableHead>

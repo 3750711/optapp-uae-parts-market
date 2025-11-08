@@ -5,9 +5,13 @@ import { Database } from "@/integrations/supabase/types";
 
 const ITEMS_PER_PAGE = 20;
 
-export interface SortConfig {
+export type SortLevel = {
   field: string;
   direction: 'asc' | 'desc';
+};
+
+export interface SortConfig {
+  levels: SortLevel[];
 }
 
 type ContainerStatus = 'waiting' | 'sent_from_uae' | 'transit_iran' | 'to_kazakhstan' | 'customs' | 'cleared_customs' | 'received';
@@ -231,11 +235,16 @@ export const useServerFilteredOrders = (
         }
       }
 
-      // 9. Сортировка
-      if (sortConfig.field && sortConfig.direction) {
-        query = query.order(sortConfig.field, { ascending: sortConfig.direction === 'asc' });
+      // 9. Сортировка (многоуровневая)
+      if (sortConfig.levels && sortConfig.levels.length > 0) {
+        // Применяем все уровни сортировки последовательно (Excel-стандарт)
+        sortConfig.levels.forEach(level => {
+          query = query.order(level.field, { ascending: level.direction === 'asc' });
+        });
       } else {
+        // По умолчанию: сначала по дате создания, потом по номеру заказа
         query = query.order('created_at', { ascending: false });
+        query = query.order('order_number', { ascending: true });
       }
 
       // 10. Пагинация

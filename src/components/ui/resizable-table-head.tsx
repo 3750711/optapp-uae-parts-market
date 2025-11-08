@@ -10,7 +10,8 @@ interface ResizableTableHeadProps {
   onResize: (columnId: string, width: number) => void;
   sortable?: boolean;
   sorted?: 'asc' | 'desc' | null;
-  onSort?: () => void;
+  sortLevel?: number | null;
+  onSort?: (e: React.MouseEvent) => void;
   children: React.ReactNode;
   className?: string;
 }
@@ -28,6 +29,7 @@ export const ResizableTableHead = React.forwardRef<
       onResize,
       sortable = false,
       sorted = null,
+      sortLevel = null,
       onSort,
       children,
       className,
@@ -85,7 +87,7 @@ export const ResizableTableHead = React.forwardRef<
           return;
         }
         if (sortable && onSort) {
-          onSort();
+          onSort(e);
         }
       },
       [sortable, onSort]
@@ -107,13 +109,18 @@ export const ResizableTableHead = React.forwardRef<
         >
           <span className="flex-1 truncate">{children}</span>
           {sortable && (
-            <span className="flex-shrink-0">
+            <span className="flex-shrink-0 flex items-center gap-1">
               {sorted === 'asc' ? (
                 <ArrowUp className="h-4 w-4" />
               ) : sorted === 'desc' ? (
                 <ArrowDown className="h-4 w-4" />
               ) : (
                 <ArrowUpDown className="h-4 w-4 opacity-50" />
+              )}
+              {sortLevel && sortLevel > 1 && (
+                <span className="text-xs opacity-60 font-normal">
+                  {sortLevel}
+                </span>
               )}
             </span>
           )}
