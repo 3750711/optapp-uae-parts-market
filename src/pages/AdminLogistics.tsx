@@ -74,11 +74,6 @@ type ShipmentStatus = 'not_shipped' | 'partially_shipped' | 'in_transit';
 
 const ITEMS_PER_PAGE = 20;
 
-type SortConfig = {
-  field: keyof Order | null;
-  direction: 'asc' | 'desc' | null;
-};
-
 const AdminLogistics = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();

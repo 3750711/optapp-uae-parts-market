@@ -6,7 +6,7 @@ import { Database } from "@/integrations/supabase/types";
 const ITEMS_PER_PAGE = 20;
 
 export type SortLevel = {
-  field: string;
+  field: keyof Order;
   direction: 'asc' | 'desc';
 };
 
