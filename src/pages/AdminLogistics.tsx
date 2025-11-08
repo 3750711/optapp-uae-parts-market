@@ -9,7 +9,7 @@ import { useResizableColumns } from '@/hooks/useResizableColumns';
 import { ResizableTableHead } from '@/components/ui/resizable-table-head';
 import { useAdminLogisticsState } from '@/hooks/useAdminLogisticsState';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Eye, Container, Save, RefreshCw, RotateCcw } from "lucide-react";
+import { Loader2, Eye, Container, Save, RefreshCw, RotateCcw, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
@@ -620,6 +620,70 @@ const AdminLogistics = () => {
     }
   };
 
+  const handleBulkMarkReadyForShipment = async (readyStatus: boolean = true) => {
+    if (!selectedOrders.length) return;
+
+    const BATCH_SIZE = 10;
+    const errors: string[] = [];
+    let processed = 0;
+    const totalOrders = selectedOrders.length;
+
+    // Обработка пакетами для избежания перегрузки БД
+    for (let i = 0; i < totalOrders; i += BATCH_SIZE) {
+      const batch = selectedOrders.slice(i, i + BATCH_SIZE);
+      
+      const results = await Promise.allSettled(
+        batch.map(orderId => 
+          supabase
+            .from('orders')
+            .update({ ready_for_shipment: readyStatus })
+            .eq('id', orderId)
+        )
+      );
+
+      results.forEach((result, index) => {
+        if (result.status === 'rejected' || result.value?.error) {
+          console.error('Error updating ready_for_shipment:', result);
+          errors.push(batch[index]);
+        } else {
+          processed++;
+        }
+      });
+
+      // Показываем прогресс
+      const currentProgress = Math.min(i + BATCH_SIZE, totalOrders);
+      toast({
+        title: "Обработка...",
+        description: `Обработано ${currentProgress} из ${totalOrders} заказов`,
+      });
+
+      // Пауза между пакетами (300ms)
+      if (i + BATCH_SIZE < totalOrders) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+    }
+
+    // Обновляем кеш
+    queryClient.invalidateQueries({ queryKey: ['logistics-orders-filtered'] });
+
+    // Финальное уведомление
+    if (errors.length > 0) {
+      toast({
+        variant: "destructive",
+        title: "Частичная ошибка",
+        description: `Успешно: ${processed}. Ошибок: ${errors.length}`,
+      });
+    } else {
+      toast({
+        title: "Успешно",
+        description: `${readyStatus ? 'Отмечено' : 'Снято'} готовность для ${processed} заказов`,
+      });
+    }
+
+    // Очищаем выбор
+    setSelectedOrders([]);
+  };
+
   const handleExportToXLSX = async () => {
     if (selectedOrders.length === 0) {
       toast({
@@ -927,6 +991,15 @@ const AdminLogistics = () => {
                     >
                       <Container className="h-4 w-4 mr-2" />
                       Изменить статус отгрузки
+                    </Button>
+                    <Button
+                      variant="default"
+                      onClick={() => handleBulkMarkReadyForShipment(true)}
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Готовы к отправке
                     </Button>
                     <Button
                       variant="secondary"
