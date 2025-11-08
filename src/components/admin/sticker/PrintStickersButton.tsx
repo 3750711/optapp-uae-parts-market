@@ -57,21 +57,6 @@ export function PrintStickersButton({
       // Open PDF in new tab
       window.open(data.pdf_url, '_blank');
 
-      // Show success toast with details
-      toast.success(
-        <div className="space-y-1">
-          <div className="font-medium">✅ Стикеры готовы!</div>
-          <div className="text-sm opacity-90">
-            Создано: {data.total_stickers} шт.
-          </div>
-          <div className="text-xs opacity-75">
-            Номера: {data.sticker_numbers.slice(0, 5).join(', ')}
-            {data.sticker_numbers.length > 5 && '...'}
-          </div>
-        </div>,
-        { duration: 10000 }
-      );
-
       // Call success callback (to clear selection)
       onSuccess?.();
 
