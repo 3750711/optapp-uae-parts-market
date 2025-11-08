@@ -139,8 +139,13 @@ export const RESPONSIVE_PRESETS = {
     quality: 'auto:good' as const,
   },
   card: {
-    widths: [320, 400, 600, 800],
-    sizes: generateSizesAttr('card'),
+    widths: [360],
+    sizes: '360px',
+    quality: 'auto:good' as const,
+  },
+  detail: {
+    widths: [640, 800, 1200],
+    sizes: '(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 70vw',
     quality: 'auto:good' as const,
   },
   thumbnail: {

@@ -79,8 +79,8 @@ export const ResponsivePicture: React.FC<ResponsivePictureProps> = ({
 
   return (
     <div className="relative w-full h-full overflow-hidden">
-      {/* Blur placeholder (loads instantly, ~1-2KB) */}
-      {pictureSources.blurDataUrl && (
+      {/* Blur placeholder (loads instantly, ~1-2KB) - only for priority images */}
+      {pictureSources.blurDataUrl && priority && (
         <img
           src={pictureSources.blurDataUrl}
           alt=""
