@@ -156,7 +156,7 @@ export const useSellerOrderFormLogic = (): SellerOrderFormLogicReturn => {
     e.preventDefault();
     
     // Validate required fields for seller
-    if (!formData.title || !formData.price || !formData.sellerId || !formData.buyerOptId) {
+    if (!formData.title || !formData.price || !formData.sellerId || !formData.buyerOptId || !formData.place_number) {
       throw new Error('Please fill in all required fields');
     }
 

@@ -73,6 +73,12 @@ export const useSellerOrderSubmission = (): SellerOrderSubmissionResult => {
 
       console.log('✅ Buyer found:', buyerProfile);
 
+      // Валидация place_number
+      const placeNumber = parseInt(formData.place_number);
+      if (isNaN(placeNumber) || placeNumber < 1) {
+        throw new Error('Место должно быть числом >= 1');
+      }
+
       // Stage 2: Создание заказа через seller_create_order
       setStage('Создание заказа...');
       setProgress(60);
@@ -81,7 +87,7 @@ export const useSellerOrderSubmission = (): SellerOrderSubmissionResult => {
         .rpc('seller_create_order', {
           p_title: formData.title,
           p_price: normalizeDecimal(formData.price),
-          p_place_number: parseInt(formData.place_number) || 1,
+          p_place_number: placeNumber,
           p_order_seller_name: null, // Будет установлено автоматически
           p_buyer_id: buyerProfile.id,
           p_brand: formData.brand || '',

@@ -36,7 +36,7 @@ export const useOrderForm = ({ productId }: UseOrderFormProps) => {
     buyerName: '',
     buyerOptId: '',
     delivery_price: '',
-    place_number: '1'
+    place_number: ''
   });
 
   const [images, setImages] = useState<string[]>([]);
@@ -82,6 +82,10 @@ export const useOrderForm = ({ productId }: UseOrderFormProps) => {
     if (field === 'title') return value.length >= 3;
     if (field === 'price') return normalizeDecimal(value) >= 0;
     if (field === 'buyerOptId') return value.length > 0;
+    if (field === 'place_number') {
+      const num = parseInt(value);
+      return !isNaN(num) && num >= 1;
+    }
     return true;
   }, [formData]);
 
@@ -97,6 +101,15 @@ export const useOrderForm = ({ productId }: UseOrderFormProps) => {
     }
     if (field === 'buyerOptId' && value.length === 0) {
       return 'OPT_ID обязателен';
+    }
+    if (field === 'place_number') {
+      const num = parseInt(value);
+      if (!value || value.trim() === '') {
+        return 'Место обязательно для заполнения';
+      }
+      if (isNaN(num) || num < 1) {
+        return 'Место должно быть числом >= 1';
+      }
     }
     return null;
   }, [formData, touchedFields]);
@@ -114,7 +127,7 @@ export const useOrderForm = ({ productId }: UseOrderFormProps) => {
       buyerName: '',
       buyerOptId: '',
       delivery_price: '',
-      place_number: '1'
+      place_number: ''
     });
     setImages([]);
     setVideos([]);
