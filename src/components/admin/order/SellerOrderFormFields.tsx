@@ -248,7 +248,7 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
                 <Input
                   id="place_number"
                   type="number"
-                  value={formData.place_number || '1'}
+                  value={formData.place_number || ''}
                   onChange={(e) => handleInputChange('place_number', e.target.value)}
                   min="1"
                   placeholder="1"
