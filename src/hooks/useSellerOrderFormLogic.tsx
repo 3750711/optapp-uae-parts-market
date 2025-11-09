@@ -61,7 +61,7 @@ export const useSellerOrderFormLogic = (): SellerOrderFormLogicReturn => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // Form data management
+  // Form data management (no translations needed in useAdminOrderFormData)
   const {
     formData,
     images,
@@ -151,13 +151,25 @@ export const useSellerOrderFormLogic = (): SellerOrderFormLogicReturn => {
     }
   }, [brands, models, baseHandleInputChange, selectBrand]);
 
-  // Enhanced submit handler with error handling
+  // Enhanced submit handler with validation
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate required fields for seller
-    if (!formData.title || !formData.price || !formData.sellerId || !formData.buyerOptId || !formData.place_number) {
-      throw new Error('Please fill in all required fields');
+    // Validate required fields properly
+    const requiredFields = ['title', 'price', 'sellerId', 'buyerOptId', 'place_number'];
+    for (const field of requiredFields) {
+      const value = formData[field];
+      if (!value || (typeof value === 'string' && value.trim() === '')) {
+        throw new Error(`Please fill in all required fields: ${field} is missing`);
+      }
+      
+      // Special validation for place_number
+      if (field === 'place_number') {
+        const num = parseInt(value);
+        if (isNaN(num) || num < 1) {
+          throw new Error('Place number must be >= 1');
+        }
+      }
     }
 
     try {

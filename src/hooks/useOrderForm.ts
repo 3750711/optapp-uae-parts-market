@@ -21,9 +21,10 @@ export interface OrderFormData {
 
 interface UseOrderFormProps {
   productId?: string | null;
+  translations?: any; // SellerPagesTranslations
 }
 
-export const useOrderForm = ({ productId }: UseOrderFormProps) => {
+export const useOrderForm = ({ productId, translations }: UseOrderFormProps) => {
   const [formData, setFormData] = useState<OrderFormData>({
     title: '',
     price: '',
@@ -105,10 +106,10 @@ export const useOrderForm = ({ productId }: UseOrderFormProps) => {
     if (field === 'place_number') {
       const num = parseInt(value);
       if (!value || value.trim() === '') {
-        return 'Место обязательно для заполнения';
+        return translations?.createOrderForm?.errors?.placeNumberRequired || 'Место обязательно для заполнения';
       }
       if (isNaN(num) || num < 1) {
-        return 'Место должно быть числом >= 1';
+        return translations?.createOrderForm?.errors?.placeNumberInvalid || 'Место должно быть числом >= 1';
       }
     }
     return null;

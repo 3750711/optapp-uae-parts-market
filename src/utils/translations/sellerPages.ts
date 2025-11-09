@@ -62,11 +62,16 @@ export interface SellerPagesTranslations {
     buyerPlaceholder: string;
     deliveryMethod: string;
     numberOfPlaces: string;
+    numberOfPlacesPlaceholder: string;
     additionalInfo: string;
     additionalInfoPlaceholder: string;
     videos: string;
     noBuyerProfiles: string;
     noName: string;
+    errors: {
+      placeNumberRequired: string;
+      placeNumberInvalid: string;
+    };
   };
   
   // SellerCreateOrder - Delivery methods
@@ -515,11 +520,16 @@ const ru: SellerPagesTranslations = {
     buyerPlaceholder: 'Выберите покупателя...',
     deliveryMethod: 'Способ доставки',
     numberOfPlaces: 'Количество мест *',
+    numberOfPlacesPlaceholder: '1',
     additionalInfo: 'Дополнительная информация',
     additionalInfoPlaceholder: 'Введите дополнительную информацию о заказе...',
     videos: 'Видео',
     noBuyerProfiles: 'Нет профилей покупателей',
-    noName: 'Без имени'
+    noName: 'Без имени',
+    errors: {
+      placeNumberRequired: 'Место обязательно для заполнения',
+      placeNumberInvalid: 'Место должно быть числом >= 1',
+    },
   },
   
   // SellerCreateOrder - Delivery methods
@@ -966,11 +976,16 @@ const en: SellerPagesTranslations = {
     buyerPlaceholder: 'Select buyer...',
     deliveryMethod: 'Delivery Method',
     numberOfPlaces: 'Number of Places *',
+    numberOfPlacesPlaceholder: '1',
     additionalInfo: 'Additional Information',
     additionalInfoPlaceholder: 'Enter additional order information...',
     videos: 'Videos',
     noBuyerProfiles: 'No buyer profiles available',
-    noName: 'No name'
+    noName: 'No name',
+    errors: {
+      placeNumberRequired: 'Place number is required',
+      placeNumberInvalid: 'Place number must be >= 1',
+    },
   },
   
   // SellerCreateOrder - Delivery methods
@@ -1417,11 +1432,16 @@ const bn: SellerPagesTranslations = {
     buyerPlaceholder: 'ক্রেতা নির্বাচন করুন...',
     deliveryMethod: 'ডেলিভারি পদ্ধতি',
     numberOfPlaces: 'স্থানের সংখ্যা *',
+    numberOfPlacesPlaceholder: '1',
     additionalInfo: 'অতিরিক্ত তথ্য',
     additionalInfoPlaceholder: 'অর্ডার সম্পর্কে অতিরিক্ত তথ্য লিখুন...',
     videos: 'ভিডিও',
     noBuyerProfiles: 'কোন ক্রেতার প্রোফাইল নেই',
-    noName: 'কোন নাম নেই'
+    noName: 'কোন নাম নেই',
+    errors: {
+      placeNumberRequired: 'স্থান সংখ্যা প্রয়োজনীয়',
+      placeNumberInvalid: 'স্থান সংখ্যা >= 1 হতে হবে',
+    },
   },
   
   // SellerCreateOrder - Delivery methods

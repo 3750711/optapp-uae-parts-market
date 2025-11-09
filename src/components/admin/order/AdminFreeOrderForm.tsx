@@ -17,9 +17,13 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileOrderCreationHeader } from './MobileOrderCreationHeader';
 import { MobileFormSection } from './MobileFormSection';
 import { ParsedTelegramOrder } from '@/utils/parseTelegramOrder';
+import { useLanguage } from '@/hooks/useLanguage';
+import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
 
 export const AdminFreeOrderForm = () => {
   const isMobile = useIsMobile();
+  const { language } = useLanguage();
+  const t = getSellerPagesTranslations(language);
 
   // Use the specialized submission hook for free orders
   const {
@@ -361,6 +365,7 @@ export const AdminFreeOrderForm = () => {
           selectBrand={selectBrand}
           findBrandNameById={findBrandNameById}
           findModelNameById={findModelNameById}
+          translations={t}
         />
       </MobileFormSection>
 

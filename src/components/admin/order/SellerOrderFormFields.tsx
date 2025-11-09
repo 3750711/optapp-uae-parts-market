@@ -244,21 +244,21 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="place_number">{t.createOrderForm.numberOfPlaces} *</Label>
+                <Label htmlFor="place_number">{t.createOrderForm.numberOfPlaces}</Label>
                 <Input
                   id="place_number"
                   type="number"
                   value={formData.place_number || ''}
                   onChange={(e) => handleInputChange('place_number', e.target.value)}
                   min="1"
-                  placeholder="1"
+                  placeholder={t.createOrderForm.numberOfPlacesPlaceholder}
                   disabled={disabled}
                   className="bg-white"
                   required
                 />
                 {!formData.place_number && (
                   <p className="text-sm text-red-500 mt-1">
-                    Место обязательно для заполнения
+                    {t.createOrderForm.errors.placeNumberRequired}
                   </p>
                 )}
               </div>

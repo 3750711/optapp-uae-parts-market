@@ -29,6 +29,8 @@ interface OptimizedSellerOrderFormFieldsProps {
   isLoadingSellers: boolean;
   enableBuyersLoading: () => void;
   enableSellersLoading: () => void;
+  // Translations
+  translations?: any; // SellerPagesTranslations
 }
 
 const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsProps> = ({
@@ -51,6 +53,8 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
   isLoadingSellers,
   enableBuyersLoading,
   enableSellersLoading,
+  // translations
+  translations,
 }) => {
 
   const handleBrandFocus = () => {
@@ -293,18 +297,23 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="place_number">Количество мест *</Label>
+                <Label htmlFor="place_number">{translations?.createOrderForm?.numberOfPlaces || 'Количество мест *'}</Label>
                 <Input
                   id="place_number"
                   type="number"
                   value={formData.place_number || ''}
                   onChange={(e) => handleInputChange('place_number', e.target.value)}
                   min="1"
-                  placeholder="Введите количество мест"
+                  placeholder={translations?.createOrderForm?.numberOfPlacesPlaceholder || '1'}
                   disabled={disabled}
                   className="bg-white"
                   required
                 />
+                {!formData.place_number && (
+                  <p className="text-sm text-red-500 mt-1">
+                    {translations?.createOrderForm?.errors?.placeNumberRequired || 'Место обязательно для заполнения'}
+                  </p>
+                )}
               </div>
             </div>
 
